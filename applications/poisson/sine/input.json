@@ -8,7 +8,7 @@
         "DegreeMin": "1",
         "DegreeMax": "3",
         "RefineSpaceMin": "0",
-        "RefineSpaceMax": "4"
+        "RefineSpaceMax": "5"
     },
     "Application": {
         "MeshType": "Cartesian"

@@ -444,6 +444,8 @@ protected:
    */
   bool is_dg;
 
+  bool is_simplex;
+
   /*
    * Block Jacobi preconditioner/smoother: matrix-free version with elementwise iterative solver
    */
