@@ -135,7 +135,7 @@ private:
     this->param.right_hand_side = true;
 
     // SPATIAL DISCRETIZATION
-    this->param.grid.element_type = ElementType::Hypercube; // Simplex;
+    this->param.grid.element_type = ElementType::Simplex; // Simplex;
     if(this->param.grid.element_type == ElementType::Simplex)
     {
       this->param.grid.triangulation_type     = TriangulationType::FullyDistributed;
@@ -154,7 +154,7 @@ private:
     }
     this->param.grid.file_name = this->grid_parameters.file_name;
 
-    this->param.spatial_discretization = SpatialDiscretization::DG;
+    this->param.spatial_discretization = SpatialDiscretization::CG;
     this->param.IP_factor              = 1.0e0;
 
     // SOLVER
