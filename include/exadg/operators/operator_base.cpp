@@ -2029,7 +2029,12 @@ OperatorBase<dim, Number, n_components>::face_loop(
       {IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index),
        IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index),
        IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index)}};
-
+    
+    
+    IntegratorFace integrator_m0 = IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index);
+    IntegratorFace integrator_m1 = IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index);
+    IntegratorFace integrator_p0 = IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index);
+    IntegratorFace integrator_p1 = IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index);
 
    // First sort the faces
    const auto reference_cell = matrix_free.get_dof_handler(0).get_triangulation().get_reference_cells()[0];
@@ -2040,29 +2045,29 @@ OperatorBase<dim, Number, n_components>::face_loop(
 
     for (unsigned int face = range.first; face < range.second; ++face)
     {
-      integrator_m[0].reinit(face);
-      (indices_map_inner[integrator_m[0].get_face_no()][integrator_m[0].get_face_orientation()]).push_back(face);
+      integrator_m[2].reinit(face);
+      (indices_map_inner[integrator_m[2].get_face_no()][integrator_m[2].get_face_orientation()]).push_back(face);
     }
   
-  // Now take all the faces with same propoerties and find outer pairs
-  for (unsigned int face_nr_inner = 0; face_nr_inner < reference_cell.n_faces(); ++face_nr_inner)
-    for (unsigned int face_or_inner = 0; face_or_inner < reference_cell.n_face_orientations(face_nr_inner); ++face_or_inner)
+    // Now take all the faces with same propoerties and find outer pairs
+    for (unsigned int face_nr_inner = 0; face_nr_inner < reference_cell.n_faces(); ++face_nr_inner)
+      for (unsigned int face_or_inner = 0; face_or_inner < reference_cell.n_face_orientations(face_nr_inner); ++face_or_inner)
       {
         std::vector<std::vector<std::vector<unsigned int>>> indices_map_outer(reference_cell.n_faces());
         for (unsigned int face_nr_outer = 0; face_nr_outer < reference_cell.n_faces(); ++face_nr_outer)
           indices_map_outer[face_nr_outer].resize(reference_cell.n_face_orientations(face_nr_outer));
         for (auto &face : (indices_map_inner[face_nr_inner][face_or_inner]))
           {
-            integrator_p[0].reinit(face);
-            (indices_map_outer[integrator_p[0].get_face_no()][integrator_p[0].get_face_orientation()]).push_back(face);
+            integrator_p[2].reinit(face);
+            (indices_map_outer[integrator_p[2].get_face_no()][integrator_p[2].get_face_orientation()]).push_back(face);
           }
         for (unsigned int face_nr_outer = 0; face_nr_outer < reference_cell.n_faces(); ++face_nr_outer)
-              for (unsigned int face_or_outer = 0; face_or_outer < reference_cell.n_face_orientations(face_nr_outer); ++face_or_outer)
+            for (unsigned int face_or_outer = 0; face_or_outer < reference_cell.n_face_orientations(face_nr_outer); ++face_or_outer)
               {
                 std::vector<unsigned int> local_face_indices = indices_map_outer[face_nr_outer][face_or_outer];
-                const auto &shape_info_inner = integrator_m[0].get_shape_info();
+                const auto &shape_info_inner = integrator_m[2].get_shape_info();
                 const auto &shape_data_inner = shape_info_inner.data.front();
-                const auto &shape_info_outer = integrator_p[0].get_shape_info();
+                const auto &shape_info_outer = integrator_p[2].get_shape_info();
                 const auto &shape_data_outer = shape_info_outer.data.front();
                 const auto *const shape_values_inner =
                             &shape_data_inner.shape_values_face(face_nr_inner, face_or_inner, 0);
@@ -2072,8 +2077,11 @@ OperatorBase<dim, Number, n_components>::face_loop(
                             &shape_data_inner.shape_gradients_face(face_nr_inner, face_or_inner, 0);
                 const auto *const shape_gradients_outer =
                             &shape_data_outer.shape_gradients_face(face_nr_outer, face_or_outer, 0);
+                using Number2 =
+                      typename dealii::FEEvaluationData<dim, Number, true>::shape_info_number_type;
 
-                for (unsigned int face = 0; face < local_face_indices.size(); ++face)
+                unsigned int face = 0;
+                for (; face < local_face_indices.size(); ++face)
                 {
                   if (face + 1 == local_face_indices.size())
                   {
@@ -2087,10 +2095,15 @@ OperatorBase<dim, Number, n_components>::face_loop(
                     integrator_m[0].integrate_scatter(integrator_flags.face_integrate, dst);
                     integrator_p[0].integrate_scatter(integrator_flags.face_integrate, dst);
                   }
-                  else if (face + 2 == local_face_indices.size())
+                  else //if (face + 2 == local_face_indices.size())
                   {
                     this->reinit_face(integrator_m[0], integrator_p[0], local_face_indices[face]);
+                    integrator_m[0].read_dof_values(src);
+                    integrator_p[0].read_dof_values(src);
+
                     this->reinit_face(integrator_m[1], integrator_p[1], local_face_indices[face+1]);
+                    integrator_m[1].read_dof_values(src);
+                    integrator_p[1].read_dof_values(src);
 
                     if (integrator_flags.face_evaluate & dealii::EvaluationFlags::values)
                     {
@@ -2133,6 +2146,7 @@ OperatorBase<dim, Number, n_components>::face_loop(
                               shape_info_outer.dofs_per_component_on_cell,
                               shape_info_outer.n_q_points_faces[face_nr_outer]* dim);
                     }
+                    
                     
                     this->do_face_integral(integrator_m[0], integrator_p[0]);
                     this->do_face_integral(integrator_m[1], integrator_p[1]);
@@ -2204,165 +2218,21 @@ OperatorBase<dim, Number, n_components>::face_loop(
                             shape_info_outer.n_q_points_faces[face_nr_outer] * dim,
                             false);
                     }
-                    
+
                     integrator_m[0].distribute_local_to_global(dst);
                     integrator_m[1].distribute_local_to_global(dst);
                     integrator_p[0].distribute_local_to_global(dst);
                     integrator_p[1].distribute_local_to_global(dst);
-                    ++face;
-                  }
-                else //if (false)
-                {
-                    this->reinit_face(integrator_m[0], integrator_p[0], local_face_indices[face]);
-                    this->reinit_face(integrator_m[1], integrator_p[1], local_face_indices[face+1]);
-                    this->reinit_face(integrator_m[2], integrator_p[2], local_face_indices[face+2]);
 
-                    if (integrator_flags.face_evaluate & dealii::EvaluationFlags::values)
-                    {
-                      apply_matrix_vector_product<true>(
-                              shape_values_inner,
-                              integrator_m[0].begin_dof_values(),
-                              integrator_m[1].begin_dof_values(),
-                              integrator_m[2].begin_dof_values(),
-                              integrator_m[0].begin_values(),
-                              integrator_m[1].begin_values(),
-                              integrator_m[2].begin_values(),
-                              shape_info_inner.dofs_per_component_on_cell,
-                              shape_info_inner.n_q_points_faces[face_nr_inner]);
-                      
-                      apply_matrix_vector_product<true>(
-                              shape_values_outer,
-                              integrator_p[0].begin_dof_values(),
-                              integrator_p[1].begin_dof_values(),
-                              integrator_p[2].begin_dof_values(),
-                              integrator_p[0].begin_values(),
-                              integrator_p[1].begin_values(),
-                              integrator_p[2].begin_values(),
-                              shape_info_outer.dofs_per_component_on_cell,
-                              shape_info_outer.n_q_points_faces[face_nr_outer]);
-                    }
-
-                    if (integrator_flags.face_evaluate & dealii::EvaluationFlags::gradients)
-                    {
-                      apply_matrix_vector_product<true>(
-                              shape_gradients_inner,
-                              integrator_m[0].begin_dof_values(),
-                              integrator_m[1].begin_dof_values(),
-                              integrator_m[2].begin_dof_values(),
-                              integrator_m[0].begin_gradients(),
-                              integrator_m[1].begin_gradients(),
-                              integrator_m[2].begin_gradients(),
-                              shape_info_inner.dofs_per_component_on_cell,
-                              shape_info_outer.n_q_points_faces[face_nr_inner]* dim);
-
-                      apply_matrix_vector_product<true>(
-                              shape_gradients_outer,
-                              integrator_p[0].begin_dof_values(),
-                              integrator_p[1].begin_dof_values(),
-                              integrator_p[2].begin_dof_values(),
-                              integrator_p[0].begin_gradients(),
-                              integrator_p[1].begin_gradients(),
-                              integrator_p[2].begin_gradients(),
-                              shape_info_outer.dofs_per_component_on_cell,
-                              shape_info_outer.n_q_points_faces[face_nr_outer]* dim);
-                    }
                     
-                    this->do_face_integral(integrator_m[0], integrator_p[0]);
-                    this->do_face_integral(integrator_m[1], integrator_p[1]);
-                    this->do_face_integral(integrator_m[2], integrator_p[2]);
-
-                    if (integrator_flags.face_integrate & dealii::EvaluationFlags::values)
-                    {
-                      apply_matrix_vector_product<false>(
-                              shape_values_inner,
-                              integrator_m[0].begin_values(),
-                              integrator_m[1].begin_values(),
-                              integrator_m[2].begin_values(),
-                              integrator_m[0].begin_dof_values(),
-                              integrator_m[1].begin_dof_values(),
-                              integrator_m[2].begin_dof_values(),
-                              shape_info_inner.dofs_per_component_on_cell,
-                              shape_info_inner.n_q_points_faces[face_nr_inner],
-                              false);
-
-                          apply_matrix_vector_product<false>(
-                              shape_values_outer,
-                              integrator_p[0].begin_values(),
-                              integrator_p[1].begin_values(),
-                              integrator_p[2].begin_values(),
-                              integrator_p[0].begin_dof_values(),
-                              integrator_p[1].begin_dof_values(),
-                              integrator_p[2].begin_dof_values(),
-                              shape_info_outer.dofs_per_component_on_cell,
-                              shape_info_outer.n_q_points_faces[face_nr_outer],
-                              false);
-                    }
-
-                    if ((integrator_flags.face_integrate & dealii::EvaluationFlags::values) && (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
-                    {
-                      apply_matrix_vector_product<false>( 
-                            shape_gradients_inner,
-                            integrator_m[0].begin_gradients(),
-                            integrator_m[1].begin_gradients(),
-                            integrator_m[2].begin_gradients(),
-                            integrator_m[0].begin_dof_values(),
-                            integrator_m[1].begin_dof_values(),
-                            integrator_m[2].begin_dof_values(),
-                            shape_info_inner.dofs_per_component_on_cell,
-                            shape_info_inner.n_q_points_faces[face_nr_inner] * dim,
-                            true);
-
-                          apply_matrix_vector_product<false>( 
-                            shape_gradients_outer,
-                            integrator_p[0].begin_gradients(),
-                            integrator_p[1].begin_gradients(),
-                            integrator_p[2].begin_gradients(),
-                            integrator_p[0].begin_dof_values(),
-                            integrator_p[1].begin_dof_values(),
-                            integrator_p[2].begin_dof_values(),
-                            shape_info_outer.dofs_per_component_on_cell,
-                            shape_info_outer.n_q_points_faces[face_nr_outer] * dim,
-                            true);
-                    }
-                    if ((!(integrator_flags.face_integrate & dealii::EvaluationFlags::values)) && (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
-                    {
-                      apply_matrix_vector_product<false>( 
-                            shape_gradients_inner,
-                            integrator_m[0].begin_gradients(),
-                            integrator_m[1].begin_gradients(),
-                            integrator_m[2].begin_gradients(),
-                            integrator_m[0].begin_dof_values(),
-                            integrator_m[1].begin_dof_values(),
-                            integrator_m[2].begin_dof_values(),
-                            shape_info_inner.dofs_per_component_on_cell,
-                            shape_info_inner.n_q_points_faces[face_nr_inner] * dim,
-                            false);
-
-                          apply_matrix_vector_product<false>( 
-                            shape_gradients_outer,
-                            integrator_p[0].begin_gradients(),
-                            integrator_p[1].begin_gradients(),
-                            integrator_p[2].begin_gradients(),
-                            integrator_p[0].begin_dof_values(),
-                            integrator_p[1].begin_dof_values(),
-                            integrator_p[2].begin_dof_values(),
-                            shape_info_outer.dofs_per_component_on_cell,
-                            shape_info_outer.n_q_points_faces[face_nr_outer] * dim,
-                            false);
-                    }
-                    
-                    integrator_m[0].distribute_local_to_global(dst);
-                    integrator_m[1].distribute_local_to_global(dst);
-                    integrator_m[2].distribute_local_to_global(dst);
-                    integrator_p[0].distribute_local_to_global(dst);
-                    integrator_p[1].distribute_local_to_global(dst);
-                    integrator_p[2].distribute_local_to_global(dst);
-                    ++face;
-                    ++face;
+                   
+                   
+                   ++face;
                   }
+                }
               }
-        }
-  } }
+      } 
+  }
   else
   {
     IntegratorFace integrator_m =
