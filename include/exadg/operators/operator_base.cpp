@@ -1654,6 +1654,18 @@ OperatorBase<dim, Number, n_components>::do_face_integral(IntegratorFace & integ
 
 template<int dim, typename Number, int n_components>
 void
+OperatorBase<dim, Number, n_components>::do_face_integral_batched(IntegratorFace & integrator_m,
+                                                          IntegratorFace & integrator_p) const
+{
+  (void)integrator_m;
+  (void)integrator_p;
+
+  AssertThrow(false,
+              dealii::ExcMessage("OperatorBase::do_face_integral() has not been implemented!"));
+}
+
+template<int dim, typename Number, int n_components>
+void
 OperatorBase<dim, Number, n_components>::do_boundary_integral(
   IntegratorFace &                   integrator,
   OperatorType const &               operator_type,
