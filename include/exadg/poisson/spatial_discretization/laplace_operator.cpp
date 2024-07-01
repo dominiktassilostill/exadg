@@ -147,8 +147,8 @@ LaplaceOperator<dim, Number, n_components>::do_face_integral(IntegratorFace & in
     value normal_gradient_m = integrator_m.get_normal_derivative(q);
     value normal_gradient_p = integrator_p.get_normal_derivative(q);
 
-    value value_flux =
-      kernel.calculate_value_flux(normal_gradient_m, normal_gradient_p, value_m, value_p, integrator_m, integrator_p, operator_data.dof_index);
+    value value_flux = kernel.calculate_value_flux(
+      normal_gradient_m, normal_gradient_p, value_m, value_p, integrator_m, integrator_p);
 
     integrator_m.submit_normal_derivative(gradient_flux, q);
     integrator_p.submit_normal_derivative(gradient_flux, q);
