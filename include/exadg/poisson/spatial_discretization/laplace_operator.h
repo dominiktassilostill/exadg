@@ -191,8 +191,8 @@ public:
                          T const &        normal_gradient_p,
                          T const &        value_m,
                          T const &        value_p,
-                         IntegratorFace & integrator_m,
-                         IntegratorFace & integrator_p) const
+                         IntegratorFace const & integrator_m,
+                         IntegratorFace const & integrator_p) const
   {
     return 0.5 * (normal_gradient_m + normal_gradient_p) -
            std::max(integrator_m.read_cell_data(array_penalty_parameter),
@@ -314,6 +314,9 @@ private:
 
   void
   do_face_integral(IntegratorFace & integrator_m, IntegratorFace & integrator_p) const final;
+
+  void
+  do_face_integral_batched(IntegratorFace & integrator_m, IntegratorFace & integrator_p) const final;
 
   void
   do_face_int_integral(IntegratorFace & integrator_m, IntegratorFace & integrator_p) const final;

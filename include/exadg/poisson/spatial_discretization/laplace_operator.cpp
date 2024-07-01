@@ -148,6 +148,32 @@ LaplaceOperator<dim, Number, n_components>::do_face_integral(IntegratorFace & in
     value normal_gradient_p = integrator_p.get_normal_derivative(q);
 
     value value_flux = kernel.calculate_value_flux(
+      normal_gradient_m, normal_gradient_p, value_m, value_p);
+
+    integrator_m.submit_normal_derivative(gradient_flux, q);
+    integrator_p.submit_normal_derivative(gradient_flux, q);
+
+    integrator_m.submit_value(-value_flux, q);
+    integrator_p.submit_value(value_flux, q); // + sign since n⁺ = -n⁻
+  }
+}
+
+template<int dim, typename Number, int n_components>
+void
+LaplaceOperator<dim, Number, n_components>::do_face_integral_batched(IntegratorFace & integrator_m,
+                                                             IntegratorFace & integrator_p) const
+{
+  for(unsigned int q = 0; q < integrator_m.n_q_points; ++q)
+  {
+    value value_m = integrator_m.get_value(q);
+    value value_p = integrator_p.get_value(q);
+
+    value gradient_flux = kernel.calculate_gradient_flux(value_m, value_p);
+
+    value normal_gradient_m = integrator_m.get_normal_derivative(q);
+    value normal_gradient_p = integrator_p.get_normal_derivative(q);
+
+    value value_flux = kernel.calculate_value_flux(
       normal_gradient_m, normal_gradient_p, value_m, value_p, integrator_m, integrator_p);
 
     integrator_m.submit_normal_derivative(gradient_flux, q);

@@ -1597,7 +1597,7 @@ OperatorBase<dim, Number, n_components>::reinit_face(IntegratorFace &   integrat
   integrator_m.reinit(face);
   integrator_p.reinit(face);
 
-  // reinit_face_derived(integrator_m, integrator_p, face);
+  reinit_face_derived(integrator_m, integrator_p, face);
 }
 
 template<int dim, typename Number, int n_components>
@@ -2113,11 +2113,13 @@ OperatorBase<dim, Number, n_components>::face_loop(
               }
               if(face + 2 == local_face_indices.size())
               {
-                this->reinit_face(integrator_m[0], integrator_p[0], local_face_indices[face]);
+                integrator_m[0].reinit(local_face_indices[face]);
+                integrator_p[0].reinit(local_face_indices[face]);
                 integrator_m[0].read_dof_values(src);
                 integrator_p[0].read_dof_values(src);
 
-                this->reinit_face(integrator_m[1], integrator_p[1], local_face_indices[face + 1]);
+                integrator_m[1].reinit(local_face_indices[face+1]);
+                integrator_p[1].reinit(local_face_indices[face+1]);
                 integrator_m[1].read_dof_values(src);
                 integrator_p[1].read_dof_values(src);
 
@@ -2164,8 +2166,8 @@ OperatorBase<dim, Number, n_components>::face_loop(
                 }
 
 
-                this->do_face_integral(integrator_m[0], integrator_p[0]);
-                this->do_face_integral(integrator_m[1], integrator_p[1]);
+                this->do_face_integral_batched(integrator_m[0], integrator_p[0]);
+                this->do_face_integral_batched(integrator_m[1], integrator_p[1]);
 
                 if(integrator_flags.face_integrate & dealii::EvaluationFlags::values)
                 {
@@ -2240,15 +2242,18 @@ OperatorBase<dim, Number, n_components>::face_loop(
               }
               else
               {
-                this->reinit_face(integrator_m[0], integrator_p[0], local_face_indices[face]);
+                integrator_m[0].reinit(local_face_indices[face]);
+                integrator_p[0].reinit(local_face_indices[face]);
                 integrator_m[0].read_dof_values(src);
                 integrator_p[0].read_dof_values(src);
 
-                this->reinit_face(integrator_m[1], integrator_p[1], local_face_indices[face + 1]);
+                integrator_m[1].reinit(local_face_indices[face+1]);
+                integrator_p[1].reinit(local_face_indices[face+1]);
                 integrator_m[1].read_dof_values(src);
                 integrator_p[1].read_dof_values(src);
 
-                this->reinit_face(integrator_m[2], integrator_p[2], local_face_indices[face + 2]);
+                integrator_m[2].reinit(local_face_indices[face+2]);
+                integrator_p[2].reinit(local_face_indices[face+2]);
                 integrator_m[2].read_dof_values(src);
                 integrator_p[2].read_dof_values(src);
 
