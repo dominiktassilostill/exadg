@@ -2321,9 +2321,9 @@ OperatorBase<dim, Number, n_components>::face_loop(
                 }
 
 
-                this->do_face_integral(integrator_m[0], integrator_p[0]);
-                this->do_face_integral(integrator_m[1], integrator_p[1]);
-                this->do_face_integral(integrator_m[2], integrator_p[2]);
+                this->do_face_integral_batched(integrator_m[0], integrator_p[0]);
+                this->do_face_integral_batched(integrator_m[1], integrator_p[1]);
+                this->do_face_integral_batched(integrator_m[2], integrator_p[2]);
 
                 if(integrator_flags.face_integrate & dealii::EvaluationFlags::values)
                 {
