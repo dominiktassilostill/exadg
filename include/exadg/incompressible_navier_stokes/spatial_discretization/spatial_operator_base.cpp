@@ -359,11 +359,21 @@ SpatialOperatorBase<dim, Number>::fill_matrix_free_data(
   matrix_free_data.insert_quadrature(*quadrature_u_overintegration, field + quad_index_u_nonlinear);
 
   // TODO create these quadrature rules only when needed
-  matrix_free_data.insert_quadrature(dealii::QGaussLobatto<1>(param.degree_u + 1),
+  if (dof_handler_u.get_fe().reference_cell().is_hyper_cube())
+  {
+    matrix_free_data.insert_quadrature(dealii::QGaussLobatto<1>(param.degree_u + 1),
                                      field + quad_index_u_gauss_lobatto);
-  matrix_free_data.insert_quadrature(dealii::QGaussLobatto<1>(param.get_degree_p(param.degree_u) +
+    matrix_free_data.insert_quadrature(dealii::QGaussLobatto<1>(param.get_degree_p(param.degree_u) +
                                                               1),
                                      field + quad_index_p_gauss_lobatto);
+  }
+  else
+  {
+    matrix_free_data.insert_quadrature(*quadrature_u,
+                                     field + quad_index_u_gauss_lobatto);
+    matrix_free_data.insert_quadrature(*quadrature_p,
+                                     field + quad_index_p_gauss_lobatto);
+  }  
 }
 
 template<int dim, typename Number>

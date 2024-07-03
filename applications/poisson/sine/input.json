@@ -8,13 +8,13 @@
         "DegreeMin": "1",
         "DegreeMax": "3",
         "RefineSpaceMin": "0",
-        "RefineSpaceMax": "5"
+        "RefineSpaceMax": "0"
     },
     "Application": {
         "MeshType": "Cartesian"
     },
     "Grid": {
-        "FileName": "applications/poisson/sine/external_grids/hypercube.e"
+        "FileName": "cylinder.vtk"
     },
     "Output": {
         "OutputDirectory": "output/poisson/sine/",

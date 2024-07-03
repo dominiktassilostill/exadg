@@ -224,8 +224,9 @@ private:
         {
           for(auto const & f : cell.face_indices())
           {
-            if(std::fabs(cell.face(f)->center()(0) - right) < 1e-12)
+            if(cell.face(f)->at_boundary())
             {
+              if (cell.face(f)->boundary_id() == 2)
               cell.face(f)->set_boundary_id(1);
             }
           }
@@ -311,6 +312,8 @@ private:
 
       if(global_refinements > 0)
         tria.refine_global(global_refinements);
+
+     
     };
 
     GridUtilities::create_triangulation_with_multigrid<dim>(grid,
@@ -380,7 +383,7 @@ private:
   double const length = 1.0;
   double const left = -length, right = length;
 
-  bool const read_external_grid = false;
+  bool const read_external_grid = true;
 
   MeshType mesh_type = MeshType::Cartesian;
 };

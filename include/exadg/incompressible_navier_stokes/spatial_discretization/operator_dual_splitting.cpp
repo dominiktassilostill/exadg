@@ -596,64 +596,123 @@ OperatorDualSplitting<dim, Number>::local_interpolate_velocity_dirichlet_bc_boun
   Range const & face_range) const
 {
   unsigned int const dof_index = this->get_dof_index_velocity();
-  AssertThrow(
-    matrix_free.get_dof_handler(dof_index).get_triangulation().all_reference_cells_are_hyper_cube(),
-    dealii::ExcMessage("This function is only implemented for hypercube elements."));
-  unsigned int const quad_index = this->get_quad_index_velocity_gauss_lobatto();
-
-  FaceIntegratorU integrator(matrix_free, true, dof_index, quad_index);
-
-  for(unsigned int face = face_range.first; face < face_range.second; face++)
+  if (matrix_free.get_dof_handler(dof_index).get_triangulation().all_reference_cells_are_hyper_cube())
   {
-    dealii::types::boundary_id const boundary_id = matrix_free.get_boundary_id(face);
+    unsigned int const quad_index = this->get_quad_index_velocity_gauss_lobatto();
 
-    BoundaryTypeU const boundary_type =
-      this->boundary_descriptor->velocity->get_boundary_type(boundary_id);
+    FaceIntegratorU integrator(matrix_free, true, dof_index, quad_index);
 
-    if(boundary_type == BoundaryTypeU::Dirichlet or boundary_type == BoundaryTypeU::DirichletCached)
+    for(unsigned int face = face_range.first; face < face_range.second; face++)
     {
-      integrator.reinit(face);
-      integrator.read_dof_values(dst);
+      dealii::types::boundary_id const boundary_id = matrix_free.get_boundary_id(face);
 
-      for(unsigned int q = 0; q < integrator.n_q_points; ++q)
+      BoundaryTypeU const boundary_type =
+        this->boundary_descriptor->velocity->get_boundary_type(boundary_id);
+
+      if(boundary_type == BoundaryTypeU::Dirichlet or boundary_type == BoundaryTypeU::DirichletCached)
       {
-        unsigned int const local_face_number = matrix_free.get_face_info(face).interior_face_no;
+        integrator.reinit(face);
+        integrator.read_dof_values(dst); //Why do this?
 
-        unsigned int const index = matrix_free.get_shape_info(dof_index, quad_index)
-                                     .face_to_cell_index_nodal[local_face_number][q];
-
-        vector g = vector();
-
-        if(boundary_type == BoundaryTypeU::Dirichlet)
+        for(unsigned int q = 0; q < integrator.n_q_points; ++q)
         {
-          auto bc = this->boundary_descriptor->velocity->dirichlet_bc.find(boundary_id)->second;
-          auto q_points = integrator.quadrature_point(q);
+          unsigned int const local_face_number = matrix_free.get_face_info(face).interior_face_no;
 
-          g = FunctionEvaluator<1, dim, Number>::value(*bc, q_points, this->evaluation_time);
-        }
-        else if(boundary_type == BoundaryTypeU::DirichletCached)
-        {
-          auto bc = this->boundary_descriptor->velocity->get_dirichlet_cached_data();
+          unsigned int const index = matrix_free.get_shape_info(dof_index, quad_index)
+                                      .face_to_cell_index_nodal[local_face_number][q];
 
-          g = FunctionEvaluator<1, dim, Number>::value(*bc, face, q, quad_index);
-        }
-        else
-        {
-          AssertThrow(false, dealii::ExcMessage("Not implemented."));
+          vector g = vector();
+
+          if(boundary_type == BoundaryTypeU::Dirichlet)
+          {
+            auto bc = this->boundary_descriptor->velocity->dirichlet_bc.find(boundary_id)->second;
+            auto q_points = integrator.quadrature_point(q);
+
+            g = FunctionEvaluator<1, dim, Number>::value(*bc, q_points, this->evaluation_time);
+          }
+          else if(boundary_type == BoundaryTypeU::DirichletCached)
+          {
+            auto bc = this->boundary_descriptor->velocity->get_dirichlet_cached_data();
+
+            g = FunctionEvaluator<1, dim, Number>::value(*bc, face, q, quad_index);
+          }
+          else
+          {
+            AssertThrow(false, dealii::ExcMessage("Not implemented."));
+          }
+
+          integrator.submit_dof_value(g, index);
         }
 
-        integrator.submit_dof_value(g, index);
+        integrator.set_dof_values(dst);
       }
-
-      integrator.set_dof_values(dst);
-    }
-    else
-    {
-      AssertThrow(boundary_type == BoundaryTypeU::Neumann or
-                    boundary_type == BoundaryTypeU::Symmetry,
-                  dealii::ExcMessage("BoundaryTypeU not implemented."));
+      else
+      {
+        AssertThrow(boundary_type == BoundaryTypeU::Neumann or
+                      boundary_type == BoundaryTypeU::Symmetry,
+                    dealii::ExcMessage("BoundaryTypeU not implemented."));
+      }
     }
   }
+  else
+  {
+    unsigned int const quad_index = this->get_quad_index_velocity_gauss_lobatto();
+    FaceIntegratorU integrator(matrix_free, true, dof_index, quad_index);
+
+    for(unsigned int face = face_range.first; face < face_range.second; face++)
+    {
+      dealii::types::boundary_id const boundary_id = matrix_free.get_boundary_id(face);
+
+      BoundaryTypeU const boundary_type =
+        this->boundary_descriptor->velocity->get_boundary_type(boundary_id);
+
+      if(boundary_type == BoundaryTypeU::Dirichlet or boundary_type == BoundaryTypeU::DirichletCached)
+      {
+        integrator.reinit(face);
+        for(unsigned int q = 0; q < integrator.n_q_points; ++q)
+        {
+          vector g = vector();
+
+          if(boundary_type == BoundaryTypeU::Dirichlet)
+          {
+            auto bc = this->boundary_descriptor->velocity->dirichlet_bc.find(boundary_id)->second;
+            auto q_points = integrator.quadrature_point(q);
+
+            g = FunctionEvaluator<1, dim, Number>::value(*bc, q_points, this->evaluation_time);
+          }
+          else if(boundary_type == BoundaryTypeU::DirichletCached)
+          {
+            auto bc = this->boundary_descriptor->velocity->get_dirichlet_cached_data();
+
+            g = FunctionEvaluator<1, dim, Number>::value(*bc, face, q, quad_index);
+          }
+          else
+          {
+            AssertThrow(false, dealii::ExcMessage("Not implemented."));
+          }
+          // do not need JxW so just write directly into values and then interpolate to DoF values 
+          auto *values  = integrator.begin_values() + q;
+          for (unsigned int comp = 0; comp < integrator.n_components; ++comp)
+          {
+            if constexpr (integrator.n_components == 1)
+              values[comp * integrator.n_q_points] = g;
+            else
+              values[comp * integrator.n_q_points] = g[comp];
+          }
+            
+        }
+        integrator.integrate(dealii::EvaluationFlags::values);
+        integrator.set_dof_values(dst);
+      }
+      else
+      {
+        AssertThrow(boundary_type == BoundaryTypeU::Neumann or
+                      boundary_type == BoundaryTypeU::Symmetry,
+                    dealii::ExcMessage("BoundaryTypeU not implemented."));
+      }
+    }
+  }
+  
 }
 
 template<int dim, typename Number>
