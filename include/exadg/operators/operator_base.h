@@ -383,6 +383,9 @@ protected:
   do_face_integral(IntegratorFace & integrator_m, IntegratorFace & integrator_p) const;
 
   virtual void
+  do_face_integral_batched(IntegratorFace & integrator_m, IntegratorFace & integrator_p, const unsigned int face) const;
+
+  virtual void
   do_boundary_integral(IntegratorFace &                   integrator,
                        OperatorType const &               operator_type,
                        dealii::types::boundary_id const & boundary_id) const;
@@ -443,6 +446,8 @@ protected:
    * Is the discretization based on discontinuous Galerkin method?
    */
   bool is_dg;
+
+  bool is_simplex;
 
   /*
    * Block Jacobi preconditioner/smoother: matrix-free version with elementwise iterative solver

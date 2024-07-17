@@ -135,7 +135,7 @@ private:
     this->param.right_hand_side = true;
 
     // SPATIAL DISCRETIZATION
-    this->param.grid.element_type = ElementType::Hypercube; // Simplex;
+    this->param.grid.element_type = ElementType::Simplex; // Simplex;
     if(this->param.grid.element_type == ElementType::Simplex)
     {
       this->param.grid.triangulation_type     = TriangulationType::FullyDistributed;
@@ -161,7 +161,7 @@ private:
     this->param.solver                      = LinearSolver::CG;
     this->param.solver_data.abs_tol         = 1.e-20;
     this->param.solver_data.rel_tol         = 1.e-10;
-    this->param.solver_data.max_iter        = 1e4;
+    this->param.solver_data.max_iter        = 1e6;
     this->param.compute_performance_metrics = true;
     this->param.preconditioner              = Preconditioner::Multigrid;
     this->param.multigrid_data.type         = MultigridType::cphMG;
@@ -224,9 +224,10 @@ private:
         {
           for(auto const & f : cell.face_indices())
           {
-            if(std::fabs(cell.face(f)->center()(0) - right) < 1e-12)
+            if(cell.face(f)->at_boundary())
             {
-              cell.face(f)->set_boundary_id(1);
+              if(cell.face(f)->boundary_id() == 2)
+                cell.face(f)->set_boundary_id(1);
             }
           }
         }
@@ -380,7 +381,7 @@ private:
   double const length = 1.0;
   double const left = -length, right = length;
 
-  bool const read_external_grid = false;
+  bool const read_external_grid = true;
 
   MeshType mesh_type = MeshType::Cartesian;
 };

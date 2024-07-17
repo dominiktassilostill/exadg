@@ -59,10 +59,13 @@ calculate_error(MPI_Comm const &                               mpi_comm,
   numerical_solution_double.update_ghost_values();
 
   // quadrature rule
-  ElementType const element_type = get_element_type(dof_handler.get_triangulation());
+  ElementType const element_type       = get_element_type(dof_handler.get_triangulation());
+  unsigned int      n_quad             = dof_handler.get_fe().degree + additional_quadrature_points;
+  unsigned int      n_quad_simplex_max = 4;
+  if(element_type == ElementType::Simplex)
+    n_quad = std::min(n_quad_simplex_max, n_quad);
   std::shared_ptr<dealii::Quadrature<dim>> quadrature =
-    create_quadrature<dim>(element_type,
-                           dof_handler.get_fe().degree + additional_quadrature_points);
+    create_quadrature<dim>(element_type, n_quad);
 
   // calculate error norm
   dealii::Vector<double> error_norm_per_cell(dof_handler.get_triangulation().n_active_cells());

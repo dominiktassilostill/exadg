@@ -187,6 +187,23 @@ public:
   template<typename T>
   inline DEAL_II_ALWAYS_INLINE //
     T
+    calculate_value_flux(T const &              normal_gradient_m,
+                         T const &              normal_gradient_p,
+                         T const &              value_m,
+                         T const &              value_p,
+                         IntegratorFace const & integrator_m,
+                         IntegratorFace const & integrator_p) const
+  {
+    return 0.5 * (normal_gradient_m + normal_gradient_p) -
+           std::max(integrator_m.read_cell_data(array_penalty_parameter),
+                    integrator_p.read_cell_data(array_penalty_parameter)) *
+             IP::get_penalty_factor<dim, Number>(degree, ElementType::Simplex, data.IP_factor) *
+             (value_m - value_p);
+  }
+
+  template<typename T>
+  inline DEAL_II_ALWAYS_INLINE //
+    T
     calculate_value_flux(T const & normal_gradient_m,
                          T const & normal_gradient_p,
                          T const & value_m,
