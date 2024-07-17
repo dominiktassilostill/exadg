@@ -34,6 +34,725 @@
 
 namespace ExaDG
 {
+template<bool transpose_matrix, bool add, typename Number, typename Number2>
+void
+apply_matrix_vector_product(const Number2 * matrix,
+                            const Number *  in0,
+                            const Number *  in1,
+                            const Number *  in2,
+                            Number *        out0,
+                            Number *        out1,
+                            Number *        out2,
+                            const int       n_rows,
+                            const int       n_columns)
+{
+  const int mm = transpose_matrix ? n_rows : n_columns, nn = transpose_matrix ? n_columns : n_rows;
+  Assert(n_rows > 0 && n_columns > 0, dealii::ExcInternalError("Empty evaluation task!"));
+  Assert(n_rows > 0 && n_columns > 0,
+         dealii::ExcInternalError("The evaluation needs n_rows, n_columns > 0, but " +
+                                  std::to_string(n_rows) + ", " + std::to_string(n_columns) +
+                                  " was passed!"));
+
+  int nn_regular = (nn / 4) * 4;
+  for(int col = 0; col < nn_regular; col += 4)
+  {
+    Number res[12];
+    if(transpose_matrix == true)
+    {
+      const Number2 * matrix_ptr = matrix + col;
+      const Number    a = in0[0], b = in1[0], c = in2[0];
+      Number          m = matrix_ptr[0];
+      res[0]            = m * a;
+      res[4]            = m * b;
+      res[8]            = m * c;
+      m                 = matrix_ptr[1];
+      res[1]            = m * a;
+      res[5]            = m * b;
+      res[9]            = m * c;
+      m                 = matrix_ptr[2];
+      res[2]            = m * a;
+      res[6]            = m * b;
+      res[10]           = m * c;
+      m                 = matrix_ptr[3];
+      res[3]            = m * a;
+      res[7]            = m * b;
+      res[11]           = m * c;
+      matrix_ptr += n_columns;
+      for(int i = 1; i < mm; ++i, matrix_ptr += n_columns)
+      {
+        const Number a = in0[i], b = in1[i], c = in2[i];
+        m = matrix_ptr[0];
+        res[0] += m * a;
+        res[4] += m * b;
+        res[8] += m * c;
+        m = matrix_ptr[1];
+        res[1] += m * a;
+        res[5] += m * b;
+        res[9] += m * c;
+        m = matrix_ptr[2];
+        res[2] += m * a;
+        res[6] += m * b;
+        res[10] += m * c;
+        m = matrix_ptr[3];
+        res[3] += m * a;
+        res[7] += m * b;
+        res[11] += m * c;
+      }
+    }
+    else
+    {
+      const Number2 * matrix_0 = matrix + col * n_columns;
+      const Number2 * matrix_1 = matrix + (col + 1) * n_columns;
+      const Number2 * matrix_2 = matrix + (col + 2) * n_columns;
+      const Number2 * matrix_3 = matrix + (col + 3) * n_columns;
+
+      const Number a = in0[0], b = in1[0], c = in2[0];
+      Number       m = matrix_0[0];
+      res[0]         = m * a;
+      res[4]         = m * b;
+      res[8]         = m * c;
+      m              = matrix_1[0];
+      res[1]         = m * a;
+      res[5]         = m * b;
+      res[9]         = m * c;
+      m              = matrix_2[0];
+      res[2]         = m * a;
+      res[6]         = m * b;
+      res[10]        = m * c;
+      m              = matrix_3[0];
+      res[3]         = m * a;
+      res[7]         = m * b;
+      res[11]        = m * c;
+      for(int i = 1; i < mm; ++i)
+      {
+        const Number a = in0[i], b = in1[i], c = in2[i];
+        m = matrix_0[i];
+        res[0] += m * a;
+        res[4] += m * b;
+        res[8] += m * c;
+        m = matrix_1[i];
+        res[1] += m * a;
+        res[5] += m * b;
+        res[9] += m * c;
+        m = matrix_2[i];
+        res[2] += m * a;
+        res[6] += m * b;
+        res[10] += m * c;
+        m = matrix_3[i];
+        res[3] += m * a;
+        res[7] += m * b;
+        res[11] += m * c;
+      }
+    }
+    if(add)
+    {
+      out0[0] += res[0];
+      out0[1] += res[1];
+      out0[2] += res[2];
+      out0[3] += res[3];
+      out1[0] += res[4];
+      out1[1] += res[5];
+      out1[2] += res[6];
+      out1[3] += res[7];
+      out2[0] += res[8];
+      out2[1] += res[9];
+      out2[2] += res[10];
+      out2[3] += res[11];
+    }
+    else
+    {
+      out0[0] = res[0];
+      out0[1] = res[1];
+      out0[2] = res[2];
+      out0[3] = res[3];
+      out1[0] = res[4];
+      out1[1] = res[5];
+      out1[2] = res[6];
+      out1[3] = res[7];
+      out2[0] = res[8];
+      out2[1] = res[9];
+      out2[2] = res[10];
+      out2[3] = res[11];
+    }
+    out0 += 4;
+    out1 += 4;
+    out2 += 4;
+  }
+  if(nn - nn_regular == 3)
+  {
+    Number res0, res1, res2, res3, res4, res5, res6, res7, res8;
+    if(transpose_matrix == true)
+    {
+      const Number2 * matrix_ptr = matrix + nn_regular;
+      res0                       = matrix_ptr[0] * in0[0];
+      res1                       = matrix_ptr[1] * in0[0];
+      res2                       = matrix_ptr[2] * in0[0];
+      res3                       = matrix_ptr[0] * in1[0];
+      res4                       = matrix_ptr[1] * in1[0];
+      res5                       = matrix_ptr[2] * in1[0];
+      res6                       = matrix_ptr[0] * in2[0];
+      res7                       = matrix_ptr[1] * in2[0];
+      res8                       = matrix_ptr[2] * in2[0];
+      matrix_ptr += n_columns;
+      for(int i = 1; i < mm; ++i, matrix_ptr += n_columns)
+      {
+        res0 += matrix_ptr[0] * in0[i];
+        res1 += matrix_ptr[1] * in0[i];
+        res2 += matrix_ptr[2] * in0[i];
+        res3 += matrix_ptr[0] * in1[i];
+        res4 += matrix_ptr[1] * in1[i];
+        res5 += matrix_ptr[2] * in1[i];
+        res6 += matrix_ptr[0] * in2[i];
+        res7 += matrix_ptr[1] * in2[i];
+        res8 += matrix_ptr[2] * in2[i];
+      }
+    }
+    else
+    {
+      const Number2 * matrix_0 = matrix + nn_regular * n_columns;
+      const Number2 * matrix_1 = matrix + (nn_regular + 1) * n_columns;
+      const Number2 * matrix_2 = matrix + (nn_regular + 2) * n_columns;
+
+      res0 = matrix_0[0] * in0[0];
+      res1 = matrix_1[0] * in0[0];
+      res2 = matrix_2[0] * in0[0];
+      res3 = matrix_0[0] * in1[0];
+      res4 = matrix_1[0] * in1[0];
+      res5 = matrix_2[0] * in1[0];
+      res6 = matrix_0[0] * in2[0];
+      res7 = matrix_1[0] * in2[0];
+      res8 = matrix_2[0] * in2[0];
+      for(int i = 1; i < mm; ++i)
+      {
+        res0 += matrix_0[i] * in0[i];
+        res1 += matrix_1[i] * in0[i];
+        res2 += matrix_2[i] * in0[i];
+        res3 += matrix_0[i] * in1[i];
+        res4 += matrix_1[i] * in1[i];
+        res5 += matrix_2[i] * in1[i];
+        res6 += matrix_0[i] * in2[i];
+        res7 += matrix_1[i] * in2[i];
+        res8 += matrix_2[i] * in2[i];
+      }
+    }
+    if(add)
+    {
+      out0[0] += res0;
+      out0[1] += res1;
+      out0[2] += res2;
+      out1[0] += res3;
+      out1[1] += res4;
+      out1[2] += res5;
+      out2[0] += res6;
+      out2[1] += res7;
+      out2[2] += res8;
+    }
+    else
+    {
+      out0[0] = res0;
+      out0[1] = res1;
+      out0[2] = res2;
+      out1[0] = res3;
+      out1[1] = res4;
+      out1[2] = res5;
+      out2[0] = res6;
+      out2[1] = res7;
+      out2[2] = res8;
+    }
+  }
+  else if(nn - nn_regular == 2)
+  {
+    Number res0, res1, res2, res3, res4, res5;
+    if(transpose_matrix == true)
+    {
+      const Number2 * matrix_ptr = matrix + nn_regular;
+      res0                       = matrix_ptr[0] * in0[0];
+      res1                       = matrix_ptr[1] * in0[0];
+      res2                       = matrix_ptr[0] * in1[0];
+      res3                       = matrix_ptr[1] * in1[0];
+      res4                       = matrix_ptr[0] * in2[0];
+      res5                       = matrix_ptr[1] * in2[0];
+      matrix_ptr += n_columns;
+      for(int i = 1; i < mm; ++i, matrix_ptr += n_columns)
+      {
+        res0 += matrix_ptr[0] * in0[i];
+        res1 += matrix_ptr[1] * in0[i];
+        res2 += matrix_ptr[0] * in1[i];
+        res3 += matrix_ptr[1] * in1[i];
+        res4 += matrix_ptr[0] * in2[i];
+        res5 += matrix_ptr[1] * in2[i];
+      }
+    }
+    else
+    {
+      const Number2 * matrix_0 = matrix + nn_regular * n_columns;
+      const Number2 * matrix_1 = matrix + (nn_regular + 1) * n_columns;
+
+      res0 = matrix_0[0] * in0[0];
+      res1 = matrix_1[0] * in0[0];
+      res2 = matrix_0[0] * in1[0];
+      res3 = matrix_1[0] * in1[0];
+      res4 = matrix_0[0] * in2[0];
+      res5 = matrix_1[0] * in2[0];
+      for(int i = 1; i < mm; ++i)
+      {
+        res0 += matrix_0[i] * in0[i];
+        res1 += matrix_1[i] * in0[i];
+        res2 += matrix_0[i] * in1[i];
+        res3 += matrix_1[i] * in1[i];
+        res4 += matrix_0[i] * in2[i];
+        res5 += matrix_1[i] * in2[i];
+      }
+    }
+    if(add)
+    {
+      out0[0] += res0;
+      out0[1] += res1;
+      out1[0] += res2;
+      out1[1] += res3;
+      out2[0] += res4;
+      out2[1] += res5;
+    }
+    else
+    {
+      out0[0] = res0;
+      out0[1] = res1;
+      out1[0] = res2;
+      out1[1] = res3;
+      out2[0] = res4;
+      out2[1] = res5;
+    }
+  }
+  else if(nn - nn_regular == 1)
+  {
+    Number res0, res1, res2;
+    if(transpose_matrix == true)
+    {
+      const Number2 * matrix_ptr = matrix + nn_regular;
+      res0                       = matrix_ptr[0] * in0[0];
+      res1                       = matrix_ptr[0] * in1[0];
+      res2                       = matrix_ptr[0] * in2[0];
+      matrix_ptr += n_columns;
+      for(int i = 1; i < mm; ++i, matrix_ptr += n_columns)
+      {
+        res0 += matrix_ptr[0] * in0[i];
+        res1 += matrix_ptr[0] * in1[i];
+        res2 += matrix_ptr[0] * in2[i];
+      }
+    }
+    else
+    {
+      const Number2 * matrix_ptr = matrix + nn_regular * n_columns;
+      res0                       = matrix_ptr[0] * in0[0];
+      res1                       = matrix_ptr[0] * in1[0];
+      res2                       = matrix_ptr[0] * in2[0];
+      for(int i = 1; i < mm; ++i)
+      {
+        res0 += matrix_ptr[i] * in0[i];
+        res1 += matrix_ptr[i] * in1[i];
+        res2 += matrix_ptr[i] * in2[i];
+      }
+    }
+    if(add)
+    {
+      out0[0] += res0;
+      out1[0] += res1;
+      out2[0] += res2;
+    }
+    else
+    {
+      out0[0] = res0;
+      out1[0] = res1;
+      out2[0] = res2;
+    }
+  }
+}
+
+template<bool transpose_matrix, bool add, typename Number, typename Number2>
+void
+apply_matrix_vector_product(const Number2 * matrix,
+                            const Number *  in0,
+                            const Number *  in1,
+                            Number *        out0,
+                            Number *        out1,
+                            const int       n_rows,
+                            const int       n_columns)
+{
+  const int mm = transpose_matrix ? n_rows : n_columns, nn = transpose_matrix ? n_columns : n_rows;
+  Assert(n_rows > 0 && n_columns > 0, dealii::ExcInternalError("Empty evaluation task!"));
+  Assert(n_rows > 0 && n_columns > 0,
+         dealii::ExcInternalError("The evaluation needs n_rows, n_columns > 0, but " +
+                                  std::to_string(n_rows) + ", " + std::to_string(n_columns) +
+                                  " was passed!"));
+
+  int nn_regular = (nn / 5) * 5;
+  for(int col = 0; col < nn_regular; col += 5)
+  {
+    Number res[10];
+    if(transpose_matrix == true)
+    {
+      const Number2 * matrix_ptr = matrix + col;
+      const Number    a = in0[0], b = in1[0];
+      Number          m = matrix_ptr[0];
+      res[0]            = m * a;
+      res[5]            = m * b;
+      m                 = matrix_ptr[1];
+      res[1]            = m * a;
+      res[6]            = m * b;
+      m                 = matrix_ptr[2];
+      res[2]            = m * a;
+      res[7]            = m * b;
+      m                 = matrix_ptr[3];
+      res[3]            = m * a;
+      res[8]            = m * b;
+      m                 = matrix_ptr[4];
+      res[4]            = m * a;
+      res[9]            = m * b;
+      matrix_ptr += n_columns;
+      for(int i = 1; i < mm; ++i, matrix_ptr += n_columns)
+      {
+        const Number a = in0[i], b = in1[i];
+        m = matrix_ptr[0];
+        res[0] += m * a;
+        res[5] += m * b;
+        m = matrix_ptr[1];
+        res[1] += m * a;
+        res[6] += m * b;
+        m = matrix_ptr[2];
+        res[2] += m * a;
+        res[7] += m * b;
+        m = matrix_ptr[3];
+        res[3] += m * a;
+        res[8] += m * b;
+        m = matrix_ptr[4];
+        res[4] += m * a;
+        res[9] += m * b;
+      }
+    }
+    else
+    {
+      const Number2 * matrix_0 = matrix + col * n_columns;
+      const Number2 * matrix_1 = matrix + (col + 1) * n_columns;
+      const Number2 * matrix_2 = matrix + (col + 2) * n_columns;
+      const Number2 * matrix_3 = matrix + (col + 3) * n_columns;
+      const Number2 * matrix_4 = matrix + (col + 4) * n_columns;
+
+      const Number a = in0[0], b = in1[0];
+      Number       m = matrix_0[0];
+      res[0]         = m * a;
+      res[5]         = m * b;
+      m              = matrix_1[0];
+      res[1]         = m * a;
+      res[6]         = m * b;
+      m              = matrix_2[0];
+      res[2]         = m * a;
+      res[7]         = m * b;
+      m              = matrix_3[0];
+      res[3]         = m * a;
+      res[8]         = m * b;
+      m              = matrix_4[0];
+      res[4]         = m * a;
+      res[9]         = m * b;
+      for(int i = 1; i < mm; ++i)
+      {
+        const Number a = in0[i], b = in1[i];
+        m = matrix_0[i];
+        res[0] += m * a;
+        res[5] += m * b;
+        m = matrix_1[i];
+        res[1] += m * a;
+        res[6] += m * b;
+        m = matrix_2[i];
+        res[2] += m * a;
+        res[7] += m * b;
+        m = matrix_3[i];
+        res[3] += m * a;
+        res[8] += m * b;
+        m = matrix_4[i];
+        res[4] += m * a;
+        res[9] += m * b;
+      }
+    }
+    if(add)
+    {
+      out0[0] += res[0];
+      out0[1] += res[1];
+      out0[2] += res[2];
+      out0[3] += res[3];
+      out0[4] += res[4];
+      out1[0] += res[5];
+      out1[1] += res[6];
+      out1[2] += res[7];
+      out1[3] += res[8];
+      out1[4] += res[9];
+    }
+    else
+    {
+      out0[0] = res[0];
+      out0[1] = res[1];
+      out0[2] = res[2];
+      out0[3] = res[3];
+      out0[4] = res[4];
+      out1[0] = res[5];
+      out1[1] = res[6];
+      out1[2] = res[7];
+      out1[3] = res[8];
+      out1[4] = res[9];
+    }
+    out0 += 5;
+    out1 += 5;
+  }
+  if(nn - nn_regular == 4)
+  {
+    Number res[8];
+    if(transpose_matrix == true)
+    {
+      const Number2 * matrix_ptr = matrix + nn_regular;
+      const Number    a = in0[0], b = in1[0];
+      Number          m = matrix_ptr[0];
+      res[0]            = m * a;
+      res[4]            = m * b;
+      m                 = matrix_ptr[1];
+      res[1]            = m * a;
+      res[5]            = m * b;
+      m                 = matrix_ptr[2];
+      res[2]            = m * a;
+      res[6]            = m * b;
+      m                 = matrix_ptr[3];
+      res[3]            = m * a;
+      res[7]            = m * b;
+      matrix_ptr += n_columns;
+      for(int i = 1; i < mm; ++i, matrix_ptr += n_columns)
+      {
+        const Number a = in0[i], b = in1[i];
+        m = matrix_ptr[0];
+        res[0] += m * a;
+        res[4] += m * b;
+        m = matrix_ptr[1];
+        res[1] += m * a;
+        res[5] += m * b;
+        m = matrix_ptr[2];
+        res[2] += m * a;
+        res[6] += m * b;
+        m = matrix_ptr[3];
+        res[3] += m * a;
+        res[7] += m * b;
+      }
+    }
+    else
+    {
+      const Number2 * matrix_0 = matrix + nn_regular * n_columns;
+      const Number2 * matrix_1 = matrix + (nn_regular + 1) * n_columns;
+      const Number2 * matrix_2 = matrix + (nn_regular + 2) * n_columns;
+      const Number2 * matrix_3 = matrix + (nn_regular + 3) * n_columns;
+
+      const Number a = in0[0], b = in1[0];
+      Number       m = matrix_0[0];
+      res[0]         = m * a;
+      res[4]         = m * b;
+      m              = matrix_1[0];
+      res[1]         = m * a;
+      res[5]         = m * b;
+      m              = matrix_2[0];
+      res[2]         = m * a;
+      res[6]         = m * b;
+      m              = matrix_3[0];
+      res[3]         = m * a;
+      res[7]         = m * b;
+      for(int i = 1; i < mm; ++i)
+      {
+        const Number a = in0[i], b = in1[i];
+        m = matrix_0[i];
+        res[0] += m * a;
+        res[4] += m * b;
+        m = matrix_1[i];
+        res[1] += m * a;
+        res[5] += m * b;
+        m = matrix_2[i];
+        res[2] += m * a;
+        res[6] += m * b;
+        m = matrix_3[i];
+        res[3] += m * a;
+        res[7] += m * b;
+      }
+    }
+    if(add)
+    {
+      out0[0] += res[0];
+      out0[1] += res[1];
+      out0[2] += res[2];
+      out0[3] += res[3];
+      out1[0] += res[4];
+      out1[1] += res[5];
+      out1[2] += res[6];
+      out1[3] += res[7];
+    }
+    else
+    {
+      out0[0] = res[0];
+      out0[1] = res[1];
+      out0[2] = res[2];
+      out0[3] = res[3];
+      out1[0] = res[4];
+      out1[1] = res[5];
+      out1[2] = res[6];
+      out1[3] = res[7];
+    }
+  }
+  if(nn - nn_regular == 3)
+  {
+    Number res0, res1, res2, res3, res4, res5;
+    if(transpose_matrix == true)
+    {
+      const Number2 * matrix_ptr = matrix + nn_regular;
+      res0                       = matrix_ptr[0] * in0[0];
+      res1                       = matrix_ptr[1] * in0[0];
+      res2                       = matrix_ptr[2] * in0[0];
+      res3                       = matrix_ptr[0] * in1[0];
+      res4                       = matrix_ptr[1] * in1[0];
+      res5                       = matrix_ptr[2] * in1[0];
+      matrix_ptr += n_columns;
+      for(int i = 1; i < mm; ++i, matrix_ptr += n_columns)
+      {
+        res0 += matrix_ptr[0] * in0[i];
+        res1 += matrix_ptr[1] * in0[i];
+        res2 += matrix_ptr[2] * in0[i];
+        res3 += matrix_ptr[0] * in1[i];
+        res4 += matrix_ptr[1] * in1[i];
+        res5 += matrix_ptr[2] * in1[i];
+      }
+    }
+    else
+    {
+      const Number2 * matrix_0 = matrix + nn_regular * n_columns;
+      const Number2 * matrix_1 = matrix + (nn_regular + 1) * n_columns;
+      const Number2 * matrix_2 = matrix + (nn_regular + 2) * n_columns;
+
+      res0 = matrix_0[0] * in0[0];
+      res1 = matrix_1[0] * in0[0];
+      res2 = matrix_2[0] * in0[0];
+      res3 = matrix_0[0] * in1[0];
+      res4 = matrix_1[0] * in1[0];
+      res5 = matrix_2[0] * in1[0];
+      for(int i = 1; i < mm; ++i)
+      {
+        res0 += matrix_0[i] * in0[i];
+        res1 += matrix_1[i] * in0[i];
+        res2 += matrix_2[i] * in0[i];
+        res3 += matrix_0[i] * in1[i];
+        res4 += matrix_1[i] * in1[i];
+        res5 += matrix_2[i] * in1[i];
+      }
+    }
+    if(add)
+    {
+      out0[0] += res0;
+      out0[1] += res1;
+      out0[2] += res2;
+      out1[0] += res3;
+      out1[1] += res4;
+      out1[2] += res5;
+    }
+    else
+    {
+      out0[0] = res0;
+      out0[1] = res1;
+      out0[2] = res2;
+      out1[0] = res3;
+      out1[1] = res4;
+      out1[2] = res5;
+    }
+  }
+  else if(nn - nn_regular == 2)
+  {
+    Number res0, res1, res2, res3;
+    if(transpose_matrix == true)
+    {
+      const Number2 * matrix_ptr = matrix + nn_regular;
+      res0                       = matrix_ptr[0] * in0[0];
+      res1                       = matrix_ptr[1] * in0[0];
+      res2                       = matrix_ptr[0] * in1[0];
+      res3                       = matrix_ptr[1] * in1[0];
+      matrix_ptr += n_columns;
+      for(int i = 1; i < mm; ++i, matrix_ptr += n_columns)
+      {
+        res0 += matrix_ptr[0] * in0[i];
+        res1 += matrix_ptr[1] * in0[i];
+        res2 += matrix_ptr[0] * in1[i];
+        res3 += matrix_ptr[1] * in1[i];
+      }
+    }
+    else
+    {
+      const Number2 * matrix_0 = matrix + nn_regular * n_columns;
+      const Number2 * matrix_1 = matrix + (nn_regular + 1) * n_columns;
+
+      res0 = matrix_0[0] * in0[0];
+      res1 = matrix_1[0] * in0[0];
+      res2 = matrix_0[0] * in1[0];
+      res3 = matrix_1[0] * in1[0];
+      for(int i = 1; i < mm; ++i)
+      {
+        res0 += matrix_0[i] * in0[i];
+        res1 += matrix_1[i] * in0[i];
+        res2 += matrix_0[i] * in1[i];
+        res3 += matrix_1[i] * in1[i];
+      }
+    }
+    if(add)
+    {
+      out0[0] += res0;
+      out0[1] += res1;
+      out1[0] += res2;
+      out1[1] += res3;
+    }
+    else
+    {
+      out0[0] = res0;
+      out0[1] = res1;
+      out1[0] = res2;
+      out1[1] = res3;
+    }
+  }
+  else if(nn - nn_regular == 1)
+  {
+    Number res0, res1;
+    if(transpose_matrix == true)
+    {
+      const Number2 * matrix_ptr = matrix + nn_regular;
+      res0                       = matrix_ptr[0] * in0[0];
+      res1                       = matrix_ptr[0] * in1[0];
+      matrix_ptr += n_columns;
+      for(int i = 1; i < mm; ++i, matrix_ptr += n_columns)
+      {
+        res0 += matrix_ptr[0] * in0[i];
+        res1 += matrix_ptr[0] * in1[i];
+      }
+    }
+    else
+    {
+      const Number2 * matrix_ptr = matrix + nn_regular * n_columns;
+      res0                       = matrix_ptr[0] * in0[0];
+      res1                       = matrix_ptr[0] * in1[0];
+      for(int i = 1; i < mm; ++i)
+      {
+        res0 += matrix_ptr[i] * in0[i];
+        res1 += matrix_ptr[i] * in1[i];
+      }
+    }
+    if(add)
+    {
+      out0[0] += res0;
+      out1[0] += res1;
+    }
+    else
+    {
+      out0[0] = res0;
+      out1[0] = res1;
+    }
+  }
+}
+
 template<int dim, typename Number, int n_components>
 OperatorBase<dim, Number, n_components>::OperatorBase()
   : dealii::Subscriptor(),
@@ -41,6 +760,7 @@ OperatorBase<dim, Number, n_components>::OperatorBase()
     time(0.0),
     is_mg(false),
     is_dg(true),
+    is_simplex(false),
     data(OperatorBaseData()),
     level(dealii::numbers::invalid_unsigned_int),
     n_mpi_processes(0)
@@ -69,6 +789,9 @@ OperatorBase<dim, Number, n_components>::reinit(
   // vertex but has all of them in the last item, i.e., quads in 2D and hexes
   // in 3D, and thus necessarily has dofs_per_vertex=0
   is_dg = (this->matrix_free->get_dof_handler(this->data.dof_index).get_fe().dofs_per_vertex == 0);
+
+  is_simplex =
+    this->matrix_free->get_dof_handler(this->data.dof_index).get_fe().reference_cell().is_simplex();
 
   // set multigrid level
   this->level = this->matrix_free->get_mg_level();
@@ -931,6 +1654,18 @@ OperatorBase<dim, Number, n_components>::do_face_integral(IntegratorFace & integ
 
 template<int dim, typename Number, int n_components>
 void
+OperatorBase<dim, Number, n_components>::do_face_integral_batched(IntegratorFace & integrator_m,
+                                                          IntegratorFace & integrator_p) const
+{
+  (void)integrator_m;
+  (void)integrator_p;
+
+  AssertThrow(false,
+              dealii::ExcMessage("OperatorBase::do_face_integral() has not been implemented!"));
+}
+
+template<int dim, typename Number, int n_components>
+void
 OperatorBase<dim, Number, n_components>::do_boundary_integral(
   IntegratorFace &                   integrator,
   OperatorType const &               operator_type,
@@ -1119,18 +1854,181 @@ OperatorBase<dim, Number, n_components>::cell_loop(
   VectorType const &                      src,
   Range const &                           range) const
 {
-  IntegratorCell integrator =
-    IntegratorCell(matrix_free, this->data.dof_index, this->data.quad_index);
-
-  for(auto cell = range.first; cell < range.second; ++cell)
+  if(is_simplex)
   {
-    this->reinit_cell(integrator, cell);
+    std::array<IntegratorCell, 3> integrators{
+      {IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index),
+       IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index),
+       IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index)}};
+    const auto & shape_info = integrators[0].get_shape_info();
 
-    integrator.gather_evaluate(src, integrator_flags.cell_evaluate);
+    for(auto cell = range.first; cell < range.second; ++cell)
+    {
+      if(cell + 1 == range.second)
+      {
+        this->reinit_cell(integrators[0], cell);
 
-    this->do_cell_integral(integrator);
+        integrators[0].gather_evaluate(src, integrator_flags.cell_evaluate);
 
-    integrator.integrate_scatter(integrator_flags.cell_integrate, dst);
+        this->do_cell_integral(integrators[0]);
+
+        integrators[0].integrate_scatter(integrator_flags.cell_integrate, dst);
+      }
+      else if(cell + 2 == range.second)
+      {
+        // this->reinit_read_cell(integrators[0], cell, src);
+        // this->reinit_read_cell(integrators[1], cell+1, src);
+        this->reinit_cell(integrators[0], cell);
+        integrators[0].read_dof_values(src);
+        this->reinit_cell(integrators[1], cell + 1);
+        integrators[1].read_dof_values(src);
+
+        if(integrator_flags.cell_evaluate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<true, false>(shape_info.data[0].shape_values.data(),
+                                                   integrators[0].begin_dof_values(),
+                                                   integrators[1].begin_dof_values(),
+                                                   integrators[0].begin_values(),
+                                                   integrators[1].begin_values(),
+                                                   shape_info.dofs_per_component_on_cell,
+                                                   shape_info.n_q_points * dim);
+
+        if(integrator_flags.cell_evaluate & dealii::EvaluationFlags::gradients)
+          apply_matrix_vector_product<true, false>(shape_info.data[0].shape_gradients.data(),
+                                                   integrators[0].begin_dof_values(),
+                                                   integrators[1].begin_dof_values(),
+                                                   integrators[0].begin_gradients(),
+                                                   integrators[1].begin_gradients(),
+                                                   shape_info.dofs_per_component_on_cell,
+                                                   shape_info.n_q_points * dim);
+
+        this->do_cell_integral(integrators[0]);
+        this->do_cell_integral(integrators[1]);
+
+        if(integrator_flags.cell_integrate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<false, false>(shape_info.data[0].shape_values.data(),
+                                                    integrators[0].begin_values(),
+                                                    integrators[1].begin_values(),
+                                                    integrators[0].begin_dof_values(),
+                                                    integrators[1].begin_dof_values(),
+                                                    shape_info.dofs_per_component_on_cell,
+                                                    shape_info.n_q_points * dim);
+        if(!(integrator_flags.cell_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.cell_integrate & dealii::EvaluationFlags::gradients))
+          apply_matrix_vector_product<false, false>(shape_info.data[0].shape_gradients.data(),
+                                                    integrators[0].begin_gradients(),
+                                                    integrators[1].begin_gradients(),
+                                                    integrators[0].begin_dof_values(),
+                                                    integrators[1].begin_dof_values(),
+                                                    shape_info.dofs_per_component_on_cell,
+                                                    shape_info.n_q_points * dim);
+        if((integrator_flags.cell_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.cell_integrate & dealii::EvaluationFlags::gradients))
+          apply_matrix_vector_product<false, true>(shape_info.data[0].shape_gradients.data(),
+                                                   integrators[0].begin_gradients(),
+                                                   integrators[1].begin_gradients(),
+                                                   integrators[0].begin_dof_values(),
+                                                   integrators[1].begin_dof_values(),
+                                                   shape_info.dofs_per_component_on_cell,
+                                                   shape_info.n_q_points * dim);
+
+        integrators[1].distribute_local_to_global(dst);
+        integrators[0].distribute_local_to_global(dst);
+        cell += 1;
+      }
+      else
+      {
+        // this->reinit_read_cell(integrators[0], cell, src);
+        // this->reinit_read_cell(integrators[1], cell+1, src);
+        // this->reinit_read_cell(integrators[2], cell+2, src);
+        this->reinit_cell(integrators[0], cell);
+        integrators[0].read_dof_values(src);
+        this->reinit_cell(integrators[1], cell + 1);
+        integrators[1].read_dof_values(src);
+        this->reinit_cell(integrators[2], cell + 2);
+        integrators[2].read_dof_values(src);
+
+        if(integrator_flags.cell_evaluate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<true, false>(shape_info.data[0].shape_values.data(),
+                                                   integrators[0].begin_dof_values(),
+                                                   integrators[1].begin_dof_values(),
+                                                   integrators[2].begin_dof_values(),
+                                                   integrators[0].begin_values(),
+                                                   integrators[1].begin_values(),
+                                                   integrators[2].begin_values(),
+                                                   shape_info.dofs_per_component_on_cell,
+                                                   shape_info.n_q_points * dim);
+        if(integrator_flags.cell_evaluate & dealii::EvaluationFlags::gradients)
+          apply_matrix_vector_product<true, false>(shape_info.data[0].shape_gradients.data(),
+                                                   integrators[0].begin_dof_values(),
+                                                   integrators[1].begin_dof_values(),
+                                                   integrators[2].begin_dof_values(),
+                                                   integrators[0].begin_gradients(),
+                                                   integrators[1].begin_gradients(),
+                                                   integrators[2].begin_gradients(),
+                                                   shape_info.dofs_per_component_on_cell,
+                                                   shape_info.n_q_points * dim);
+
+        for(auto & integrator : integrators)
+          this->do_cell_integral(integrator);
+
+        if(integrator_flags.cell_integrate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<false, false>(shape_info.data[0].shape_values.data(),
+                                                    integrators[0].begin_values(),
+                                                    integrators[1].begin_values(),
+                                                    integrators[2].begin_values(),
+                                                    integrators[0].begin_dof_values(),
+                                                    integrators[1].begin_dof_values(),
+                                                    integrators[2].begin_dof_values(),
+                                                    shape_info.dofs_per_component_on_cell,
+                                                    shape_info.n_q_points * dim);
+
+        if(!(integrator_flags.cell_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.cell_integrate & dealii::EvaluationFlags::gradients))
+          apply_matrix_vector_product<false, false>(shape_info.data[0].shape_gradients.data(),
+                                                    integrators[0].begin_gradients(),
+                                                    integrators[1].begin_gradients(),
+                                                    integrators[2].begin_gradients(),
+                                                    integrators[0].begin_dof_values(),
+                                                    integrators[1].begin_dof_values(),
+                                                    integrators[2].begin_dof_values(),
+                                                    shape_info.dofs_per_component_on_cell,
+                                                    shape_info.n_q_points * dim);
+
+
+        if((integrator_flags.cell_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.cell_integrate & dealii::EvaluationFlags::gradients))
+          apply_matrix_vector_product<false, true>(shape_info.data[0].shape_gradients.data(),
+                                                   integrators[0].begin_gradients(),
+                                                   integrators[1].begin_gradients(),
+                                                   integrators[2].begin_gradients(),
+                                                   integrators[0].begin_dof_values(),
+                                                   integrators[1].begin_dof_values(),
+                                                   integrators[2].begin_dof_values(),
+                                                   shape_info.dofs_per_component_on_cell,
+                                                   shape_info.n_q_points * dim);
+
+        integrators[2].distribute_local_to_global(dst);
+        integrators[1].distribute_local_to_global(dst);
+        integrators[0].distribute_local_to_global(dst);
+
+        cell += 2;
+      }
+    }
+  }
+  else
+  {
+    IntegratorCell integrator =
+      IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index);
+    for(auto cell = range.first; cell < range.second; ++cell)
+    {
+      this->reinit_cell(integrator, cell);
+
+      integrator.gather_evaluate(src, integrator_flags.cell_evaluate);
+
+      this->do_cell_integral(integrator);
+
+      integrator.integrate_scatter(integrator_flags.cell_integrate, dst);
+    }
   }
 }
 
@@ -1142,22 +2040,418 @@ OperatorBase<dim, Number, n_components>::face_loop(
   VectorType const &                      src,
   Range const &                           range) const
 {
-  IntegratorFace integrator_m =
-    IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index);
-  IntegratorFace integrator_p =
-    IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index);
-
-  for(auto face = range.first; face < range.second; ++face)
+  if(is_simplex)
   {
-    this->reinit_face(integrator_m, integrator_p, face);
+    std::array<IntegratorFace, 3> integrator_m{
+      {IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index),
+       IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index),
+       IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index)}};
+    std::array<IntegratorFace, 3> integrator_p{
+      {IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index),
+       IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index),
+       IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index)}};
 
-    integrator_m.gather_evaluate(src, integrator_flags.face_evaluate);
-    integrator_p.gather_evaluate(src, integrator_flags.face_evaluate);
+    // using Number2 = typename dealii::FEEvaluationData<dim, Number, true>::shape_info_number_type;
 
-    this->do_face_integral(integrator_m, integrator_p);
+    const auto & shape_info_inner = integrator_m[0].get_shape_info();
+    const auto & shape_data_inner = shape_info_inner.data.front();
+    const auto & shape_info_outer = integrator_p[0].get_shape_info();
+    const auto & shape_data_outer = shape_info_outer.data.front();
 
-    integrator_m.integrate_scatter(integrator_flags.face_integrate, dst);
-    integrator_p.integrate_scatter(integrator_flags.face_integrate, dst);
+    // First sort the faces
+    const auto reference_cell =
+      (dim == 2 ? dealii::ReferenceCells::Triangle : dealii::ReferenceCells::Tetrahedron);
+    std::vector<std::vector<std::vector<unsigned int>>> indices_map_inner(reference_cell.n_faces());
+
+    for(unsigned int face_nr = 0; face_nr < reference_cell.n_faces(); ++face_nr)
+      indices_map_inner[face_nr].resize(reference_cell.n_face_orientations(face_nr));
+
+    for(unsigned int face = range.first; face < range.second; ++face)
+    {
+      integrator_m[0].reinit(face);
+      (indices_map_inner[integrator_m[0].get_face_no()][integrator_m[0].get_face_orientation()])
+        .push_back(face);
+    }
+
+    // Now take all the faces with same propoerties and find outer pairs
+    for(unsigned int face_nr_inner = 0; face_nr_inner < reference_cell.n_faces(); ++face_nr_inner)
+      for(unsigned int face_or_inner = 0;
+          face_or_inner < reference_cell.n_face_orientations(face_nr_inner);
+          ++face_or_inner)
+      {
+        std::vector<std::vector<std::vector<unsigned int>>> indices_map_outer(
+          reference_cell.n_faces());
+        for(unsigned int face_nr_outer = 0; face_nr_outer < reference_cell.n_faces();
+            ++face_nr_outer)
+          indices_map_outer[face_nr_outer].resize(
+            reference_cell.n_face_orientations(face_nr_outer));
+        for(auto & face : (indices_map_inner[face_nr_inner][face_or_inner]))
+        {
+          integrator_p[0].reinit(face);
+          (indices_map_outer[integrator_p[0].get_face_no()][integrator_p[0].get_face_orientation()])
+            .push_back(face);
+        }
+        for(unsigned int face_nr_outer = 0; face_nr_outer < reference_cell.n_faces();
+            ++face_nr_outer)
+          for(unsigned int face_or_outer = 0;
+              face_or_outer < reference_cell.n_face_orientations(face_nr_outer);
+              ++face_or_outer)
+          {
+            std::vector<unsigned int> local_face_indices =
+              indices_map_outer[face_nr_outer][face_or_outer];
+
+            const auto * const shape_values_inner =
+              &shape_data_inner.shape_values_face(face_nr_inner, face_or_inner, 0);
+            const auto * const shape_values_outer =
+              &shape_data_outer.shape_values_face(face_nr_outer, face_or_outer, 0);
+            const auto * const shape_gradients_inner =
+              &shape_data_inner.shape_gradients_face(face_nr_inner, face_or_inner, 0);
+            const auto * const shape_gradients_outer =
+              &shape_data_outer.shape_gradients_face(face_nr_outer, face_or_outer, 0);
+
+            for(unsigned int face = 0; face < local_face_indices.size(); ++face)
+            {
+              if(face + 1 == local_face_indices.size())
+              {
+                this->reinit_face(integrator_m[0], integrator_p[0], local_face_indices[face]);
+
+                integrator_m[0].gather_evaluate(src, integrator_flags.face_evaluate);
+                integrator_p[0].gather_evaluate(src, integrator_flags.face_evaluate);
+
+                this->do_face_integral(integrator_m[0], integrator_p[0]);
+
+                integrator_m[0].integrate_scatter(integrator_flags.face_integrate, dst);
+                integrator_p[0].integrate_scatter(integrator_flags.face_integrate, dst);
+              }
+              else // if (face + 2 == local_face_indices.size())
+              {
+                integrator_m[0].reinit(local_face_indices[face]);
+                integrator_m[0].read_dof_values(src);
+                integrator_m[1].reinit(local_face_indices[face+1]);
+                integrator_m[1].read_dof_values(src);
+
+                integrator_p[0].reinit(local_face_indices[face]);
+                integrator_p[0].read_dof_values(src);                
+                integrator_p[1].reinit(local_face_indices[face+1]);
+                integrator_p[1].read_dof_values(src);
+
+                if(integrator_flags.face_evaluate & dealii::EvaluationFlags::values)
+                {
+                  apply_matrix_vector_product<true, false>(
+                    shape_values_inner,
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    integrator_m[0].begin_values(),
+                    integrator_m[1].begin_values(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_inner.n_q_points_faces[face_nr_inner]);
+                }
+
+                if(integrator_flags.face_evaluate & dealii::EvaluationFlags::gradients)
+                {
+                  apply_matrix_vector_product<true, false>(
+                    shape_gradients_inner,
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    integrator_m[0].begin_gradients(),
+                    integrator_m[1].begin_gradients(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_inner] * dim);
+                }
+
+                if(integrator_flags.face_evaluate & dealii::EvaluationFlags::values)
+                {
+                  apply_matrix_vector_product<true, false>(
+                    shape_values_outer,
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    integrator_p[0].begin_values(),
+                    integrator_p[1].begin_values(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer]);
+                }
+
+                if(integrator_flags.face_evaluate & dealii::EvaluationFlags::gradients)
+                {
+                  apply_matrix_vector_product<true, false>(
+                    shape_gradients_outer,
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    integrator_p[0].begin_gradients(),
+                    integrator_p[1].begin_gradients(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer] * dim);
+                }
+
+
+                this->do_face_integral_batched(integrator_m[0], integrator_p[0]);
+                this->do_face_integral_batched(integrator_m[1], integrator_p[1]);
+
+                if(integrator_flags.face_integrate & dealii::EvaluationFlags::values)
+                {
+                  apply_matrix_vector_product<false, false>(
+                    shape_values_inner,
+                    integrator_m[0].begin_values(),
+                    integrator_m[1].begin_values(),
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_inner.n_q_points_faces[face_nr_inner]);
+                }
+
+                 if((integrator_flags.face_integrate & dealii::EvaluationFlags::values) &&
+                   (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
+                {
+                  apply_matrix_vector_product<false, true>(
+                    shape_gradients_inner,
+                    integrator_m[0].begin_gradients(),
+                    integrator_m[1].begin_gradients(),
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_inner.n_q_points_faces[face_nr_inner] * dim);
+                }
+
+                if((!(integrator_flags.face_integrate & dealii::EvaluationFlags::values)) &&
+                   (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
+                {
+                  apply_matrix_vector_product<false, false>(
+                    shape_gradients_inner,
+                    integrator_m[0].begin_gradients(),
+                    integrator_m[1].begin_gradients(),
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_inner.n_q_points_faces[face_nr_inner] * dim);
+                }
+
+                if(integrator_flags.face_integrate & dealii::EvaluationFlags::values)
+                {
+                  apply_matrix_vector_product<false, false>(
+                    shape_values_outer,
+                    integrator_p[0].begin_values(),
+                    integrator_p[1].begin_values(),
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer]);
+                }
+
+                if((integrator_flags.face_integrate & dealii::EvaluationFlags::values) &&
+                   (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
+                {
+                  apply_matrix_vector_product<false, true>(
+                    shape_gradients_outer,
+                    integrator_p[0].begin_gradients(),
+                    integrator_p[1].begin_gradients(),
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer] * dim);
+                }
+
+                if((!(integrator_flags.face_integrate & dealii::EvaluationFlags::values)) &&
+                   (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
+                {
+                  apply_matrix_vector_product<false, false>(
+                    shape_gradients_outer,
+                    integrator_p[0].begin_gradients(),
+                    integrator_p[1].begin_gradients(),
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer] * dim);
+                }
+
+                integrator_m[0].distribute_local_to_global(dst);
+                integrator_m[1].distribute_local_to_global(dst);
+                integrator_p[0].distribute_local_to_global(dst);
+                integrator_p[1].distribute_local_to_global(dst);
+
+                ++face;
+              }
+              if (false) //else
+              {
+                integrator_m[0].reinit(local_face_indices[face]);
+                integrator_p[0].reinit(local_face_indices[face]);
+                integrator_m[0].read_dof_values(src);
+                integrator_p[0].read_dof_values(src);
+
+                integrator_m[1].reinit(local_face_indices[face+1]);
+                integrator_p[1].reinit(local_face_indices[face+1]);
+                integrator_m[1].read_dof_values(src);
+                integrator_p[1].read_dof_values(src);
+
+                integrator_m[2].reinit(local_face_indices[face+2]);
+                integrator_p[2].reinit(local_face_indices[face+2]);
+                integrator_m[2].read_dof_values(src);
+                integrator_p[2].read_dof_values(src);
+
+
+                if(integrator_flags.face_evaluate & dealii::EvaluationFlags::values)
+                {
+                  apply_matrix_vector_product<true, false>(
+                    shape_values_inner,
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    integrator_m[2].begin_dof_values(),
+                    integrator_m[0].begin_values(),
+                    integrator_m[1].begin_values(),
+                    integrator_m[2].begin_values(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_inner.n_q_points_faces[face_nr_inner]);
+
+                  apply_matrix_vector_product<true, false>(
+                    shape_values_outer,
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    integrator_p[2].begin_dof_values(),
+                    integrator_p[0].begin_values(),
+                    integrator_p[1].begin_values(),
+                    integrator_p[2].begin_values(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer]);
+                }
+
+                if(integrator_flags.face_evaluate & dealii::EvaluationFlags::gradients)
+                {
+                  apply_matrix_vector_product<true, false>(
+                    shape_gradients_inner,
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    integrator_m[2].begin_dof_values(),
+                    integrator_m[0].begin_gradients(),
+                    integrator_m[1].begin_gradients(),
+                    integrator_m[2].begin_gradients(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_inner] * dim);
+
+                  apply_matrix_vector_product<true, false>(
+                    shape_gradients_outer,
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    integrator_p[2].begin_dof_values(),
+                    integrator_p[0].begin_gradients(),
+                    integrator_p[1].begin_gradients(),
+                    integrator_p[2].begin_gradients(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer] * dim);
+                }
+
+
+                this->do_face_integral_batched(integrator_m[0], integrator_p[0]);
+                this->do_face_integral_batched(integrator_m[1], integrator_p[1]);
+                this->do_face_integral_batched(integrator_m[2], integrator_p[2]);
+
+                if(integrator_flags.face_integrate & dealii::EvaluationFlags::values)
+                {
+                  apply_matrix_vector_product<false, false>(
+                    shape_values_inner,
+                    integrator_m[0].begin_values(),
+                    integrator_m[1].begin_values(),
+                    integrator_m[2].begin_values(),
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    integrator_m[2].begin_dof_values(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_inner.n_q_points_faces[face_nr_inner]);
+
+                  apply_matrix_vector_product<false, false>(
+                    shape_values_outer,
+                    integrator_p[0].begin_values(),
+                    integrator_p[1].begin_values(),
+                    integrator_p[2].begin_values(),
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    integrator_p[2].begin_dof_values(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer]);
+                }
+
+                if((integrator_flags.face_integrate & dealii::EvaluationFlags::values) &&
+                   (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
+                {
+                  apply_matrix_vector_product<false, true>(
+                    shape_gradients_inner,
+                    integrator_m[0].begin_gradients(),
+                    integrator_m[1].begin_gradients(),
+                    integrator_m[2].begin_gradients(),
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    integrator_m[2].begin_dof_values(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_inner.n_q_points_faces[face_nr_inner] * dim);
+
+                  apply_matrix_vector_product<false, true>(
+                    shape_gradients_outer,
+                    integrator_p[0].begin_gradients(),
+                    integrator_p[1].begin_gradients(),
+                    integrator_p[2].begin_gradients(),
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    integrator_p[2].begin_dof_values(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer] * dim);
+                }
+                if((!(integrator_flags.face_integrate & dealii::EvaluationFlags::values)) &&
+                   (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
+                {
+                  apply_matrix_vector_product<false, false>(
+                    shape_gradients_inner,
+                    integrator_m[0].begin_gradients(),
+                    integrator_m[1].begin_gradients(),
+                    integrator_m[2].begin_gradients(),
+                    integrator_m[0].begin_dof_values(),
+                    integrator_m[1].begin_dof_values(),
+                    integrator_m[2].begin_dof_values(),
+                    shape_info_inner.dofs_per_component_on_cell,
+                    shape_info_inner.n_q_points_faces[face_nr_inner] * dim);
+
+                  apply_matrix_vector_product<false, false>(
+                    shape_gradients_outer,
+                    integrator_p[0].begin_gradients(),
+                    integrator_p[1].begin_gradients(),
+                    integrator_p[2].begin_gradients(),
+                    integrator_p[0].begin_dof_values(),
+                    integrator_p[1].begin_dof_values(),
+                    integrator_p[2].begin_dof_values(),
+                    shape_info_outer.dofs_per_component_on_cell,
+                    shape_info_outer.n_q_points_faces[face_nr_outer] * dim);
+                }
+
+                integrator_m[0].distribute_local_to_global(dst);
+                integrator_m[1].distribute_local_to_global(dst);
+                integrator_m[2].distribute_local_to_global(dst);
+                integrator_p[0].distribute_local_to_global(dst);
+                integrator_p[1].distribute_local_to_global(dst);
+                integrator_p[2].distribute_local_to_global(dst);
+
+                ++face;
+                ++face;
+              }
+            }
+          }
+      }
+  }
+  else
+  {
+    IntegratorFace integrator_m =
+      IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index);
+    IntegratorFace integrator_p =
+      IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index);
+
+    for(auto face = range.first; face < range.second; ++face)
+    {
+      this->reinit_face(integrator_m, integrator_p, face);
+
+      integrator_m.gather_evaluate(src, integrator_flags.face_evaluate);
+      integrator_p.gather_evaluate(src, integrator_flags.face_evaluate);
+
+      this->do_face_integral(integrator_m, integrator_p);
+
+      integrator_m.integrate_scatter(integrator_flags.face_integrate, dst);
+      integrator_p.integrate_scatter(integrator_flags.face_integrate, dst);
+    }
   }
 }
 
