@@ -6,9 +6,9 @@
     },
     "SpatialResolution": {
         "DegreeMin": "1",
-        "DegreeMax": "3",
-        "RefineSpaceMin": "0",
-        "RefineSpaceMax": "0"
+        "DegreeMax": "1",
+        "RefineSpaceMin": "3",
+        "RefineSpaceMax": "3"
     },
     "Application": {
         "MeshType": "Cartesian"

@@ -164,7 +164,7 @@ private:
     this->param.solver_data.max_iter        = 1e6;
     this->param.compute_performance_metrics = true;
     this->param.preconditioner              = Preconditioner::Multigrid;
-    this->param.multigrid_data.type         = MultigridType::cphMG;
+    this->param.multigrid_data.type         = MultigridType::hMG;
     this->param.multigrid_data.p_sequence   = PSequenceType::Bisect;
     // MG smoother
     this->param.multigrid_data.smoother_data.smoother        = MultigridSmoother::Chebyshev;
@@ -381,7 +381,7 @@ private:
   double const length = 1.0;
   double const left = -length, right = length;
 
-  bool const read_external_grid = true;
+  bool const read_external_grid = false;
 
   MeshType mesh_type = MeshType::Cartesian;
 };

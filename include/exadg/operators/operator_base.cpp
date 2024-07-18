@@ -1853,7 +1853,7 @@ OperatorBase<dim, Number, n_components>::cell_loop(
   VectorType const &                      src,
   Range const &                           range) const
 {
-  if (false) //(is_simplex)
+  if (is_simplex)
   {
     std::array<IntegratorCell, 3> integrators{
       {IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index),
@@ -2059,7 +2059,7 @@ OperatorBase<dim, Number, n_components>::face_loop(
   VectorType const &                      src,
   Range const &                           range) const
 {
-  if (false) //(is_simplex)
+  if (is_simplex)
   {
     std::array<IntegratorFace, 3> integrator_m{
       {IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index),
