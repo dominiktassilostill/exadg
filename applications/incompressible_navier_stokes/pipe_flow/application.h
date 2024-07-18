@@ -155,11 +155,11 @@ private:
     // TEMPORAL DISCRETIZATION
     this->param.solver_type                     = SolverType::Unsteady;
     this->param.temporal_discretization         = TemporalDiscretization::BDFDualSplittingScheme;
-    this->param.treatment_of_convective_term    = TreatmentOfConvectiveTerm::Explicit;
+    this->param.treatment_of_convective_term    = TreatmentOfConvectiveTerm::Implicit;
     this->param.calculation_of_time_step_size   = TimeStepCalculation::CFL;
     this->param.adaptive_time_stepping          = true;
     this->param.max_velocity                    = max_velocity;
-    this->param.cfl                             = 2.0e-1;
+    this->param.cfl                             = 8.0;
     this->param.cfl_exponent_fe_degree_velocity = 1.5;
     this->param.time_step_size                  = 1.0e-1;
     this->param.order_time_integrator           = 2;    // 1; // 2; // 3;
@@ -231,7 +231,7 @@ private:
     this->param.multigrid_data_projection.smoother_data.iterations = 5;
     this->param.multigrid_data_projection.coarse_problem.solver    = MultigridCoarseGridSolver::CG;
     this->param.multigrid_data_projection.coarse_problem.preconditioner =
-      MultigridCoarseGridPreconditioner::PointJacobi;
+      MultigridCoarseGridPreconditioner::AMG;
     this->param.update_preconditioner_projection = false;
 
 
@@ -244,7 +244,7 @@ private:
     if(this->param.temporal_discretization == TemporalDiscretization::BDFDualSplittingScheme)
     {
       // -> viscous step
-      this->param.solver_momentum              = SolverMomentum::FGMRES;
+      this->param.solver_momentum              = SolverMomentum::CG;
       this->param.solver_data_momentum         = SolverData(1e5, 1.e-12, 1.e-5);
       this->param.preconditioner_momentum      = MomentumPreconditioner::Multigrid;
       this->param.multigrid_data_momentum.type = MultigridType::cphMG;
