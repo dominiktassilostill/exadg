@@ -1853,13 +1853,18 @@ OperatorBase<dim, Number, n_components>::cell_loop(
   VectorType const &                      src,
   Range const &                           range) const
 {
-  if (is_simplex)
+   IntegratorCell integrator =
+      IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index);
+    integrator.reinit(range.first);
+
+   const auto & shape_info = integrator.get_shape_info();
+
+  if (false) //(is_simplex && (integrator.n_components == 1))
   {
     std::array<IntegratorCell, 3> integrators{
       {IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index),
        IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index),
        IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index)}};
-    const auto & shape_info = integrators[0].get_shape_info();
 
     for(auto cell = range.first; cell < range.second; ++cell)
     {
@@ -2034,10 +2039,149 @@ OperatorBase<dim, Number, n_components>::cell_loop(
       }
     }
   }
+  else if (is_simplex && (integrator.n_components == 2))
+  {
+    for(auto cell = range.first; cell < range.second; ++cell)
+    {
+      this->reinit_cell(integrator, cell);
+      integrator.read_dof_values(src);
+
+      if(integrator_flags.cell_evaluate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<true, false>(
+            shape_info.data[0].shape_values.data(),
+            integrator.begin_dof_values(),
+            integrator.begin_dof_values() + shape_info.dofs_per_component_on_cell,
+            integrator.begin_values(),
+            integrator.begin_values() + shape_info.n_q_points,
+            shape_info.dofs_per_component_on_cell,
+            shape_info.n_q_points);
+
+      if(integrator_flags.cell_evaluate & dealii::EvaluationFlags::gradients)
+          apply_matrix_vector_product<true, false>(
+            shape_info.data[0].shape_gradients.data(),
+            integrator.begin_dof_values(),
+            integrator.begin_dof_values() +  shape_info.dofs_per_component_on_cell,
+            integrator.begin_gradients(),
+            integrator.begin_gradients() + shape_info.n_q_points * dim,
+            shape_info.dofs_per_component_on_cell,
+            shape_info.n_q_points * dim);
+
+      this->do_cell_integral(integrator);
+
+       if(integrator_flags.cell_integrate & dealii::EvaluationFlags::values)
+            apply_matrix_vector_product<false, false>(
+              shape_info.data[0].shape_values.data(),
+              integrator.begin_values(),
+              integrator.begin_values() + shape_info.n_q_points,
+              integrator.begin_dof_values(),
+              integrator.begin_dof_values() + shape_info.dofs_per_component_on_cell,
+              shape_info.dofs_per_component_on_cell,
+              shape_info.n_q_points);
+        if(!(integrator_flags.cell_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.cell_integrate & dealii::EvaluationFlags::gradients))
+          
+            apply_matrix_vector_product<false, false>(
+              shape_info.data[0].shape_gradients.data(),
+              integrator.begin_gradients(),
+              integrator.begin_gradients() +  shape_info.n_q_points * dim,
+              integrator.begin_dof_values(),
+              integrator.begin_dof_values() +  shape_info.dofs_per_component_on_cell,
+              shape_info.dofs_per_component_on_cell,
+              shape_info.n_q_points * dim);
+        if((integrator_flags.cell_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.cell_integrate & dealii::EvaluationFlags::gradients))
+          
+            apply_matrix_vector_product<false, true>(
+              shape_info.data[0].shape_gradients.data(),
+              integrator.begin_gradients(),
+              integrator.begin_gradients() + shape_info.n_q_points * dim,
+              integrator.begin_dof_values(),
+              integrator.begin_dof_values() + shape_info.dofs_per_component_on_cell,
+              shape_info.dofs_per_component_on_cell,
+              shape_info.n_q_points * dim);
+
+        integrator.distribute_local_to_global(dst);
+
+    }
+  }
+  else if (is_simplex && (integrator.n_components == 3))
+  {
+    for(auto cell = range.first; cell < range.second; ++cell)
+    {
+      this->reinit_cell(integrator, cell);
+      integrator.read_dof_values(src);
+
+      if(integrator_flags.cell_evaluate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<true, false>(
+            shape_info.data[0].shape_values.data(),
+            integrator.begin_dof_values(),
+            integrator.begin_dof_values() + shape_info.dofs_per_component_on_cell,
+            integrator.begin_dof_values() + 2*shape_info.dofs_per_component_on_cell,
+            integrator.begin_values(),
+            integrator.begin_values() + shape_info.n_q_points,
+            integrator.begin_values() + 2* shape_info.n_q_points,
+            shape_info.dofs_per_component_on_cell,
+            shape_info.n_q_points);
+
+      if(integrator_flags.cell_evaluate & dealii::EvaluationFlags::gradients)
+          apply_matrix_vector_product<true, false>(
+            shape_info.data[0].shape_gradients.data(),
+            integrator.begin_dof_values(),
+            integrator.begin_dof_values() +  shape_info.dofs_per_component_on_cell,
+            integrator.begin_dof_values() + 2* shape_info.dofs_per_component_on_cell,
+            integrator.begin_gradients(),
+            integrator.begin_gradients() + shape_info.n_q_points * dim,
+            integrator.begin_gradients() + shape_info.n_q_points * dim *2 ,
+            shape_info.dofs_per_component_on_cell,
+            shape_info.n_q_points * dim);
+
+      this->do_cell_integral(integrator);
+
+       if(integrator_flags.cell_integrate & dealii::EvaluationFlags::values)
+            apply_matrix_vector_product<false, false>(
+              shape_info.data[0].shape_values.data(),
+              integrator.begin_values(),
+              integrator.begin_values() + shape_info.n_q_points,
+              integrator.begin_values() + 2* shape_info.n_q_points,
+              integrator.begin_dof_values(),
+              integrator.begin_dof_values() + shape_info.dofs_per_component_on_cell,
+              integrator.begin_dof_values() + 2*shape_info.dofs_per_component_on_cell,
+              shape_info.dofs_per_component_on_cell,
+              shape_info.n_q_points);
+        if(!(integrator_flags.cell_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.cell_integrate & dealii::EvaluationFlags::gradients))
+          
+            apply_matrix_vector_product<false, false>(
+              shape_info.data[0].shape_gradients.data(),
+              integrator.begin_gradients(),
+              integrator.begin_gradients() +  shape_info.n_q_points * dim,
+               integrator.begin_gradients() +  2*shape_info.n_q_points * dim,
+              integrator.begin_dof_values(),
+              integrator.begin_dof_values() +  shape_info.dofs_per_component_on_cell,
+               integrator.begin_dof_values() +  2*shape_info.dofs_per_component_on_cell,
+              shape_info.dofs_per_component_on_cell,
+              shape_info.n_q_points * dim);
+        if((integrator_flags.cell_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.cell_integrate & dealii::EvaluationFlags::gradients))
+          
+            apply_matrix_vector_product<false, true>(
+              shape_info.data[0].shape_gradients.data(),
+              integrator.begin_gradients(),
+              integrator.begin_gradients() + shape_info.n_q_points * dim,
+              integrator.begin_gradients() + 2*shape_info.n_q_points * dim,
+              integrator.begin_dof_values(),
+              integrator.begin_dof_values() + shape_info.dofs_per_component_on_cell,
+              integrator.begin_dof_values() + 2*shape_info.dofs_per_component_on_cell,
+              shape_info.dofs_per_component_on_cell,
+              shape_info.n_q_points * dim);
+
+        integrator.distribute_local_to_global(dst);
+
+    }
+  }
   else
   {
-    IntegratorCell integrator =
-      IntegratorCell(matrix_free, range, this->data.dof_index, this->data.quad_index);
+    
     for(auto cell = range.first; cell < range.second; ++cell)
     {
       this->reinit_cell(integrator, cell);
@@ -2059,7 +2203,19 @@ OperatorBase<dim, Number, n_components>::face_loop(
   VectorType const &                      src,
   Range const &                           range) const
 {
-  if (is_simplex)
+  IntegratorFace integrator_m =
+      IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index);
+    IntegratorFace integrator_p =
+      IntegratorFace(matrix_free, false, this->data.dof_index, this->data.quad_index);
+
+  const auto & shape_info_inner = integrator_m.get_shape_info();
+  const auto & shape_data_inner = shape_info_inner.data.front();
+  const auto & shape_info_outer = integrator_p.get_shape_info();
+  const auto & shape_data_outer = shape_info_outer.data.front();
+
+  integrator_m.reinit(range.first);
+
+  if (false) //(is_simplex && integrator_m.n_components == 1)
   {
     std::array<IntegratorFace, 3> integrator_m{
       {IntegratorFace(matrix_free, true, this->data.dof_index, this->data.quad_index),
@@ -2142,7 +2298,7 @@ OperatorBase<dim, Number, n_components>::face_loop(
                 integrator_m[0].integrate_scatter(integrator_flags.face_integrate, dst);
                 integrator_p[0].integrate_scatter(integrator_flags.face_integrate, dst);
               }
-              else // if (face + 2 == local_face_indices.size())
+              else if (face + 2 == local_face_indices.size())
               {
                 integrator_m[0].reinit(local_face_indices[face]);
                 integrator_m[0].read_dof_values(src);
@@ -2339,7 +2495,7 @@ OperatorBase<dim, Number, n_components>::face_loop(
 
                 ++face;
               }
-              if(false) // else
+              else
               {
                 integrator_m[0].reinit(local_face_indices[face]);
                 integrator_p[0].reinit(local_face_indices[face]);
@@ -2571,6 +2727,292 @@ OperatorBase<dim, Number, n_components>::face_loop(
             }
           }
       }
+  }
+  else if (is_simplex && integrator_m.n_components == 3)
+  {
+    for(auto face = range.first; face < range.second; ++face)
+    {
+      this->reinit_face(integrator_m, integrator_p, face);
+      integrator_m.read_dof_values(src);
+      integrator_p.read_dof_values(src);
+
+
+      const auto * const shape_values_inner =
+        &shape_data_inner.shape_values_face(integrator_m.get_face_no(), integrator_m.get_face_orientation(), 0);
+      const auto * const shape_values_outer =
+        &shape_data_outer.shape_values_face(integrator_p.get_face_no(), integrator_p.get_face_orientation(), 0);
+      const auto * const shape_gradients_inner =
+        &shape_data_inner.shape_gradients_face(integrator_m.get_face_no(), integrator_m.get_face_orientation(), 0);
+      const auto * const shape_gradients_outer =
+        &shape_data_outer.shape_gradients_face(integrator_p.get_face_no(), integrator_p.get_face_orientation(), 0);
+
+      if(integrator_flags.face_evaluate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<true, false>(
+            shape_values_inner,
+            integrator_m.begin_dof_values(),
+            integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+            integrator_m.begin_dof_values() + 2 * shape_info_inner.dofs_per_component_on_cell,
+            integrator_m.begin_values(),
+            integrator_m.begin_values() + shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+             integrator_m.begin_values() + 2* shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+            shape_info_inner.dofs_per_component_on_cell,
+            shape_info_inner.n_q_points_faces[integrator_m.get_face_no()]);
+        
+       if(integrator_flags.face_evaluate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<true, false>(
+            shape_values_outer,
+            integrator_p.begin_dof_values(),
+            integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+            integrator_p.begin_dof_values() + 2*shape_info_outer.dofs_per_component_on_cell,
+            integrator_p.begin_values(),
+            integrator_p.begin_values() + shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+             integrator_p.begin_values() + 2* shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+            shape_info_outer.dofs_per_component_on_cell,
+            shape_info_outer.n_q_points_faces[integrator_p.get_face_no()]);
+
+
+       if(integrator_flags.face_evaluate & dealii::EvaluationFlags::gradients)
+          apply_matrix_vector_product<true, false>(
+            shape_gradients_inner,
+            integrator_m.begin_dof_values(),
+            integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+             integrator_m.begin_dof_values() + 2 * shape_info_inner.dofs_per_component_on_cell,
+            integrator_m.begin_gradients(),
+            integrator_m.begin_gradients() + dim * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+            integrator_m.begin_gradients() + 2 * dim * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+            shape_info_inner.dofs_per_component_on_cell,
+            shape_info_inner.n_q_points_faces[integrator_m.get_face_no()] * dim);
+        
+       if(integrator_flags.face_evaluate & dealii::EvaluationFlags::gradients)
+          apply_matrix_vector_product<true, false>(
+            shape_gradients_outer,
+            integrator_p.begin_dof_values(),
+            integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+            integrator_p.begin_dof_values() + 2 * shape_info_outer.dofs_per_component_on_cell,
+            integrator_p.begin_gradients(),
+            integrator_p.begin_gradients() + dim * shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+            integrator_p.begin_gradients() + 2 * dim * shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+            shape_info_outer.dofs_per_component_on_cell,
+            shape_info_outer.n_q_points_faces[integrator_p.get_face_no()]*dim);
+
+
+     
+
+      this->do_face_integral(integrator_m, integrator_p);
+
+       if(integrator_flags.face_integrate & dealii::EvaluationFlags::values)
+       {
+            apply_matrix_vector_product<false, false>(
+              shape_values_inner,
+              integrator_m.begin_values(),
+              integrator_m.begin_values() + shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+              integrator_m.begin_values() + 2 * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+              integrator_m.begin_dof_values(),
+              integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+              integrator_m.begin_dof_values() + 2 * shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.n_q_points_faces[integrator_m.get_face_no()]);
+            apply_matrix_vector_product<false, false>(
+              shape_values_outer,
+              integrator_p.begin_values(),
+              integrator_p.begin_values() + shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+               integrator_p.begin_values() + 2 * shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+              integrator_p.begin_dof_values(),
+              integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+              integrator_p.begin_dof_values() + 2 * shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.n_q_points_faces[integrator_p.get_face_no()]);
+        }
+              
+        if(!(integrator_flags.face_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))  
+            {
+            apply_matrix_vector_product<false, false>(
+              shape_gradients_inner,
+              integrator_m.begin_gradients(),
+              integrator_m.begin_gradients() + dim * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+               integrator_m.begin_gradients() + 2 * dim * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+              integrator_m.begin_dof_values(),
+              integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+               integrator_m.begin_dof_values() + 2 * shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.n_q_points_faces[integrator_m.get_face_no()] * dim);
+
+            apply_matrix_vector_product<false, false>(
+              shape_gradients_outer,
+              integrator_p.begin_gradients(),
+              integrator_p.begin_gradients() + dim * shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+              integrator_p.begin_gradients() + 2 * dim * shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+              integrator_p.begin_dof_values(),
+              integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+               integrator_p.begin_dof_values() + 2 * shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.n_q_points_faces[integrator_p.get_face_no()] * dim);
+        }
+
+        if((integrator_flags.face_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
+           {
+            apply_matrix_vector_product<false, true>(
+              shape_gradients_inner,
+              integrator_m.begin_gradients(),
+              integrator_m.begin_gradients() + dim * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+              integrator_m.begin_gradients() + 2 * dim * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+              integrator_m.begin_dof_values(),
+              integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+              integrator_m.begin_dof_values() + 2 * shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.n_q_points_faces[integrator_m.get_face_no()] * dim);
+
+            apply_matrix_vector_product<false, true>(
+              shape_gradients_outer,
+              integrator_p.begin_gradients(),
+              integrator_p.begin_gradients() + dim * shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+              integrator_p.begin_gradients() + 2 * dim * shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+              integrator_p.begin_dof_values(),
+              integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+              integrator_p.begin_dof_values() + 2 * shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.n_q_points_faces[integrator_p.get_face_no()] * dim);
+        }
+
+        integrator_m.distribute_local_to_global(dst);
+        integrator_p.distribute_local_to_global(dst);
+
+    }
+  }
+  else if (is_simplex && integrator_m.n_components == 2)
+  {
+    for(auto face = range.first; face < range.second; ++face)
+    {
+      this->reinit_face(integrator_m, integrator_p, face);
+      integrator_m.read_dof_values(src);
+      integrator_p.read_dof_values(src);
+
+
+      const auto * const shape_values_inner =
+        &shape_data_inner.shape_values_face(integrator_m.get_face_no(), integrator_m.get_face_orientation(), 0);
+      const auto * const shape_values_outer =
+        &shape_data_outer.shape_values_face(integrator_p.get_face_no(), integrator_p.get_face_orientation(), 0);
+      const auto * const shape_gradients_inner =
+        &shape_data_inner.shape_gradients_face(integrator_m.get_face_no(), integrator_m.get_face_orientation(), 0);
+      const auto * const shape_gradients_outer =
+        &shape_data_outer.shape_gradients_face(integrator_p.get_face_no(), integrator_p.get_face_orientation(), 0);
+
+      if(integrator_flags.face_evaluate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<true, false>(
+            shape_values_inner,
+            integrator_m.begin_dof_values(),
+            integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+            integrator_m.begin_values(),
+            integrator_m.begin_values() + shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+            shape_info_inner.dofs_per_component_on_cell,
+            shape_info_inner.n_q_points_faces[integrator_m.get_face_no()]);
+        
+       if(integrator_flags.face_evaluate & dealii::EvaluationFlags::values)
+          apply_matrix_vector_product<true, false>(
+            shape_values_outer,
+            integrator_p.begin_dof_values(),
+            integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+            integrator_p.begin_values(),
+            integrator_p.begin_values() + shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+            shape_info_outer.dofs_per_component_on_cell,
+            shape_info_outer.n_q_points_faces[integrator_p.get_face_no()]);
+
+
+       if(integrator_flags.face_evaluate & dealii::EvaluationFlags::gradients)
+          apply_matrix_vector_product<true, false>(
+            shape_gradients_inner,
+            integrator_m.begin_dof_values(),
+            integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+            integrator_m.begin_gradients(),
+            integrator_m.begin_gradients() + dim * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+            shape_info_inner.dofs_per_component_on_cell,
+            shape_info_inner.n_q_points_faces[integrator_m.get_face_no()] * dim);
+        
+       if(integrator_flags.face_evaluate & dealii::EvaluationFlags::gradients)
+          apply_matrix_vector_product<true, false>(
+            shape_gradients_outer,
+            integrator_p.begin_dof_values(),
+            integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+            integrator_p.begin_gradients(),
+            integrator_p.begin_gradients() + dim* shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+            shape_info_outer.dofs_per_component_on_cell,
+            shape_info_outer.n_q_points_faces[integrator_p.get_face_no()]*dim);
+
+
+     
+
+      this->do_face_integral(integrator_m, integrator_p);
+
+       if(integrator_flags.face_integrate & dealii::EvaluationFlags::values)
+       {
+            apply_matrix_vector_product<false, false>(
+              shape_values_inner,
+              integrator_m.begin_values(),
+              integrator_m.begin_values() + shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+              integrator_m.begin_dof_values(),
+              integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.n_q_points_faces[integrator_m.get_face_no()]);
+            apply_matrix_vector_product<false, false>(
+              shape_values_outer,
+              integrator_p.begin_values(),
+              integrator_p.begin_values() + shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+              integrator_p.begin_dof_values(),
+              integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.n_q_points_faces[integrator_p.get_face_no()]);
+        }
+              
+        if(!(integrator_flags.face_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))  
+            {
+            apply_matrix_vector_product<false, false>(
+              shape_gradients_inner,
+              integrator_m.begin_gradients(),
+              integrator_m.begin_gradients() + dim * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+              integrator_m.begin_dof_values(),
+              integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.n_q_points_faces[integrator_m.get_face_no()] * dim);
+
+            apply_matrix_vector_product<false, false>(
+              shape_gradients_outer,
+              integrator_p.begin_gradients(),
+              integrator_p.begin_gradients() + dim * shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+              integrator_p.begin_dof_values(),
+              integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.n_q_points_faces[integrator_p.get_face_no()] * dim);
+        }
+
+        if((integrator_flags.face_integrate & dealii::EvaluationFlags::values) &&
+           (integrator_flags.face_integrate & dealii::EvaluationFlags::gradients))
+           {
+            apply_matrix_vector_product<false, true>(
+              shape_gradients_inner,
+              integrator_m.begin_gradients(),
+              integrator_m.begin_gradients() + dim * shape_info_inner.n_q_points_faces[integrator_m.get_face_no()],
+              integrator_m.begin_dof_values(),
+              integrator_m.begin_dof_values() + shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.dofs_per_component_on_cell,
+              shape_info_inner.n_q_points_faces[integrator_m.get_face_no()] * dim);
+
+            apply_matrix_vector_product<false, true>(
+              shape_gradients_outer,
+              integrator_p.begin_gradients(),
+              integrator_p.begin_gradients() + dim * shape_info_outer.n_q_points_faces[integrator_p.get_face_no()],
+              integrator_p.begin_dof_values(),
+              integrator_p.begin_dof_values() + shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.dofs_per_component_on_cell,
+              shape_info_outer.n_q_points_faces[integrator_p.get_face_no()] * dim);
+        }
+
+        integrator_m.distribute_local_to_global(dst);
+        integrator_p.distribute_local_to_global(dst);
+
+    }
   }
   else
   {

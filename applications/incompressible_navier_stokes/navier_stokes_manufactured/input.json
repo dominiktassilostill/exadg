@@ -6,17 +6,17 @@
     },
     "SpatialResolution": {
         "DegreeMin": "2",
-        "DegreeMax": "2",
-        "RefineSpaceMin": "0",
-        "RefineSpaceMax": "4"
+        "DegreeMax": "3",
+        "RefineSpaceMin": "2",
+        "RefineSpaceMax": "2"
     },
     "TemporalResolution": {
-        "RefineTimeMin": "4",
-        "RefineTimeMax": "4"
+        "RefineTimeMin": "0",
+        "RefineTimeMax": "0"
     },
     "Application": {
          "IncludeConvectiveTerm": "true",
-         "PureDirichletProblem": "true",
+         "PureDirichletProblem": "false",
          "StartTime": "0.0",
          "EndTime": "0.0001",
          "IntervalStart": "0.0",
@@ -24,10 +24,10 @@
          "Density": "1000.0",
          "KinematicViscosity": "1e-6",
          "UseGeneralizedNewtonianModel": "true",
-         "FormulationViscousTermLaplaceFormulation" : "false",
-         "TemporalDiscretization" : "BDFPressureCorrection",
+         "FormulationViscousTermLaplaceFormulation" : "true",
+         "TemporalDiscretization" : "BDFDualSplittingScheme",
          "TreatmentOfConvectiveTermImplicit" : "true",
-         "TreatmentOfVariableViscosityImplicit" : "true",
+         "TreatmentOfVariableViscosityImplicit" : "false",
          "GeneralizedNewtonianViscosityMargin": "49e-6",
          "GeneralizedNewtonianKappa": "1.0",
          "GeneralizedNewtonianLambda": "1.0",

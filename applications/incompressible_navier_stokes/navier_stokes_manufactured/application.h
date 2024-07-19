@@ -450,22 +450,28 @@ private:
 
     // TEMPORAL DISCRETIZATION
     this->param.solver_type                   = SolverType::Unsteady;
-    this->param.temporal_discretization       = temporal_discretization;
-    this->param.calculation_of_time_step_size = TimeStepCalculation::UserSpecified;
-    this->param.time_step_size                = this->param.end_time;
-    this->param.order_time_integrator         = 2;     // 1; // 2; // 3;
-    this->param.start_with_low_order          = false; // true;
+    this->param.temporal_discretization       = TemporalDiscretization::BDFDualSplittingScheme;
+    this->param.calculation_of_time_step_size   = TimeStepCalculation::CFL;
+    this->param.adaptive_time_stepping          = true;
+    this->param.max_velocity                    = 1.0;
+    this->param.cfl                             = 0.1;
+    this->param.cfl_exponent_fe_degree_velocity = 1.5;
+    this->param.time_step_size                  = 1.0e-1;
+    this->param.order_time_integrator           = 2;    // 1; // 2; // 3;
+    this->param.start_with_low_order            = true; // true; // false;
 
     // output of solver information
     this->param.solver_info_data.interval_time =
-      (this->param.end_time - this->param.start_time) / 10;
+      (this->param.end_time - this->param.start_time) / 100;
 
 
     // SPATIAL DISCRETIZATION
-    this->param.grid.triangulation_type     = TriangulationType::Distributed;
+    this->param.grid.element_type                 = ElementType::Simplex;
+    this->param.grid.triangulation_type     = TriangulationType::FullyDistributed;
     this->param.mapping_degree              = this->param.degree_u;
     this->param.mapping_degree_coarse_grids = this->param.mapping_degree;
     this->param.degree_p                    = DegreePressure::MixedOrder;
+     this->param.grid.create_coarse_triangulations = true;
 
     // convective term
     this->param.treatment_of_convective_term = treatment_of_convective_term_implicit ?
@@ -497,7 +503,13 @@ private:
     this->param.continuity_penalty_use_boundary_data       = true;
     this->param.apply_penalty_terms_in_postprocessing_step = true;
 
+     this->param.inverse_mass_operator.implementation_type =
+      InverseMassType::ElementwiseKrylovSolver;
+    this->param.inverse_mass_operator.preconditioner            = PreconditionerMass::PointJacobi;
+    this->param.inverse_mass_preconditioner.implementation_type = InverseMassType::BlockMatrices;
+
     // TURBULENCE
+    use_turbulence_model = false;
     this->param.turbulence_model_data.is_active        = use_turbulence_model;
     this->param.turbulence_model_data.turbulence_model = TurbulenceEddyViscosityModel::Sigma;
     // Smagorinsky: 0.165
@@ -523,15 +535,30 @@ private:
 
     // PROJECTION METHODS
 
-    // pressure Poisson equation
-    this->param.solver_pressure_poisson         = SolverPressurePoisson::CG;
-    this->param.preconditioner_pressure_poisson = PreconditionerPressurePoisson::Multigrid;
-    this->param.solver_data_pressure_poisson    = SolverData(1000, 1.e-12, 1.e-8);
-
-    // projection step
-    this->param.solver_projection         = SolverProjection::CG;
-    this->param.solver_data_projection    = SolverData(1000, 1.e-12, 1.e-8);
-    this->param.preconditioner_projection = PreconditionerProjection::InverseMassMatrix;
+     // pressure Poisson equation -> pressure
+    this->param.solver_pressure_poisson              = SolverPressurePoisson::CG; // FGMRESs
+    this->param.solver_data_pressure_poisson         = SolverData(1e5, 1.e-12, 1.e-5, 30);
+    this->param.preconditioner_pressure_poisson      = PreconditionerPressurePoisson::Multigrid;
+    this->param.multigrid_data_pressure_poisson.type = MultigridType::cphMG;
+    this->param.multigrid_data_pressure_poisson.smoother_data.smoother =
+      MultigridSmoother::Chebyshev;
+    this->param.multigrid_data_pressure_poisson.smoother_data.iterations = 5;
+    this->param.multigrid_data_pressure_poisson.coarse_problem.solver =
+      MultigridCoarseGridSolver::CG;
+    this->param.multigrid_data_pressure_poisson.coarse_problem.preconditioner =
+      MultigridCoarseGridPreconditioner::AMG; // PointJacobi;
+   
+    // projection step -> penalty step
+    this->param.solver_projection              = SolverProjection::CG; // FGMRES
+    this->param.solver_data_projection         = SolverData(1e5, 1.e-12, 1.e-5);
+    this->param.preconditioner_projection      = PreconditionerProjection::Multigrid;
+    this->param.multigrid_data_projection.type = MultigridType::hMG;
+    this->param.multigrid_data_projection.smoother_data.smoother   = MultigridSmoother::Chebyshev;
+    this->param.multigrid_data_projection.smoother_data.iterations = 5;
+    this->param.multigrid_data_projection.coarse_problem.solver    = MultigridCoarseGridSolver::CG;
+    this->param.multigrid_data_projection.coarse_problem.preconditioner =
+      MultigridCoarseGridPreconditioner::AMG;
+    this->param.update_preconditioner_projection = false;
 
     // HIGH-ORDER DUAL SPLITTING SCHEME
 
@@ -540,10 +567,20 @@ private:
       this->param.order_time_integrator <= 2 ? this->param.order_time_integrator : 2;
 
     if(this->param.temporal_discretization == TemporalDiscretization::BDFDualSplittingScheme)
-    {
-      this->param.solver_momentum         = SolverMomentum::CG;
-      this->param.solver_data_momentum    = SolverData(1000, 1.e-12, 1.e-8);
-      this->param.preconditioner_momentum = MomentumPreconditioner::InverseMassMatrix;
+     {
+      // -> viscous step
+      this->param.solver_momentum              = SolverMomentum::CG;
+      this->param.solver_data_momentum         = SolverData(1e5, 1.e-12, 1.e-5);
+      this->param.preconditioner_momentum      = MomentumPreconditioner::Multigrid;
+      this->param.multigrid_data_momentum.type = MultigridType::cphMG;
+      this->param.multigrid_operator_type_momentum = MultigridOperatorType::ReactionDiffusion;
+      this->param.multigrid_data_momentum.smoother_data.smoother   = MultigridSmoother::Chebyshev;
+      this->param.multigrid_data_momentum.smoother_data.iterations = 5;
+      this->param.multigrid_data_momentum.coarse_problem.solver    = MultigridCoarseGridSolver::CG;
+      this->param.multigrid_data_momentum.coarse_problem.preconditioner =
+        MultigridCoarseGridPreconditioner::AMG;
+      this->param.multigrid_data_momentum.coarse_problem.amg_data.ml_data.n_cycles     = 1;
+      this->param.multigrid_data_momentum.coarse_problem.amg_data.boomer_data.max_iter = 1;
     }
 
 
@@ -620,7 +657,7 @@ private:
           std::vector<unsigned int> const &                        vector_local_refinements) {
         (void)periodic_face_pairs;
 
-        dealii::GridGenerator::hyper_cube(tria, interval_start, interval_end, true);
+        dealii::GridGenerator::subdivided_hyper_cube_with_simplices(tria, 2, interval_start, interval_end, true);
 
         if(vector_local_refinements.size() > 0)
           refine_local(tria, vector_local_refinements);

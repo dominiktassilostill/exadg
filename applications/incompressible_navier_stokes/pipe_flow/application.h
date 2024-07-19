@@ -131,7 +131,7 @@ private:
     double input_max_vel = *std::max_element(inflow_values.begin(), inflow_values.end());
     max_velocity         = 2.0 * input_max_vel;
     end_time             = inflow_times.back();
-    end_time             = 1e-1;
+    end_time             = 1e-2;
   }
 
   void
@@ -413,6 +413,14 @@ private:
       pp_data.output_data.write_higher_order = false;
     }
     pp_data.output_data.degree = this->param.degree_u;
+
+    pp_data.error_data_u.write_errors_to_file               = true;
+    pp_data.error_data_u.time_control_data.is_active        = true;
+    pp_data.error_data_u.time_control_data.start_time       = start_time;
+    pp_data.error_data_u.time_control_data.trigger_interval = (end_time - start_time);
+    pp_data.error_data_u.analytical_solution.reset(new dealii::Functions::ZeroFunction<dim>(dim));
+    pp_data.error_data_u.calculate_relative_errors = false;
+    pp_data.error_data_u.name                      = "velocity_error";
 
     std::shared_ptr<PostProcessorBase<dim, Number>> pp;
     pp.reset(new PostProcessor<dim, Number>(pp_data, this->mpi_comm));
