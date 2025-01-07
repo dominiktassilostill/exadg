@@ -30,7 +30,7 @@ namespace ExaDG
 namespace Poisson
 {
 double const FREQUENCY             = 3.0 * dealii::numbers::PI;
-bool const   USE_NEUMANN_BOUNDARY  = true;
+bool const   USE_NEUMANN_BOUNDARY  = false;
 bool const   USE_PERIODIC_BOUNDARY = false;
 
 template<int dim>
@@ -135,12 +135,12 @@ private:
     this->param.right_hand_side = true;
 
     // SPATIAL DISCRETIZATION
-    this->param.grid.element_type = ElementType::Hypercube; // Simplex;
+    this->param.grid.element_type = ElementType::Simplex;
     if(this->param.grid.element_type == ElementType::Simplex)
     {
       this->param.grid.triangulation_type     = TriangulationType::FullyDistributed;
-      this->param.mapping_degree              = 2;
-      this->param.mapping_degree_coarse_grids = this->param.mapping_degree;
+      this->param.mapping_degree              = 1;
+      this->param.mapping_degree_coarse_grids = 1; //this->param.mapping_degree;
 
       this->param.grid.create_coarse_triangulations = true;
     }
@@ -164,7 +164,7 @@ private:
     this->param.solver_data.max_iter        = 1e4;
     this->param.compute_performance_metrics = true;
     this->param.preconditioner              = Preconditioner::Multigrid;
-    this->param.multigrid_data.type         = MultigridType::cphMG;
+    this->param.multigrid_data.type         = MultigridType::cpMG;
     this->param.multigrid_data.p_sequence   = PSequenceType::Bisect;
     // MG smoother
     this->param.multigrid_data.smoother_data.smoother        = MultigridSmoother::Chebyshev;
@@ -380,7 +380,7 @@ private:
   double const length = 1.0;
   double const left = -length, right = length;
 
-  bool const read_external_grid = false;
+  bool const read_external_grid = true;
 
   MeshType mesh_type = MeshType::Cartesian;
 };
