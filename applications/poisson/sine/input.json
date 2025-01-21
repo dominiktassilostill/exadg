@@ -14,7 +14,7 @@
         "MeshType": "Cartesian"
     },
     "Grid": {
-        "FileName": "/home/still/ExaDG/lung_reordered_with_boundary_ids_scaled.vtk"
+        "FileName": "lung_reordered_with_boundary_ids_scaled.vtk"
     },
     "Output": {
         "OutputDirectory": "output/poisson/sine/",
