@@ -169,7 +169,7 @@ private:
     this->param.solver_data.max_iter                  = 1e4;
     this->param.compute_performance_metrics           = true;
     this->param.preconditioner                        = Preconditioner::Multigrid;
-    this->param.multigrid_data.type                   = MultigridType::cphMG;
+    this->param.multigrid_data.type                   = MultigridType::cpMG;
     this->param.multigrid_data.p_sequence             = PSequenceType::Bisect;
     this->param.multigrid_data.min_degree_matrix_free = 1;
     // MG smoother
@@ -180,8 +180,8 @@ private:
     this->param.multigrid_data.coarse_problem.solver = MultigridCoarseGridSolver::CG;
     this->param.multigrid_data.coarse_problem.preconditioner =
       MultigridCoarseGridPreconditioner::AMG;
-    this->param.multigrid_data.coarse_problem.solver_data.rel_tol = 1.e-3;
-    this->param.multigrid_data.coarse_problem.amg_data.amg_type = AMGType::ML;
+    this->param.multigrid_data.coarse_problem.solver_data.rel_tol = 1.0e-1;
+    this->param.multigrid_data.coarse_problem.amg_data.amg_type = AMGType::BoomerAMG;
   }
 
   void
@@ -204,8 +204,49 @@ private:
 
       if(read_external_grid)
       {
+//	dealii::Triangulation<dim, dim> tria_in;
         GridUtilities::read_external_triangulation<dim>(tria, this->param.grid);
+	for (auto  cell: tria)
+	 for (auto const & f: cell.face_indices())
+	    if (cell.face(f)->at_boundary())
+		    cell.face(f)->set_boundary_id(0);
+/*	dealii::DynamicSparsityPattern cell_connectivity;
+        dealii::GridTools::get_vertex_connectivity_of_cells(
+                    tria_in, cell_connectivity);
+        std::vector<long unsigned int> cell_numbering;
+        cell_numbering.resize(tria_in.n_cells(0));
+        dealii::SparsityTools::reorder_hierarchical(cell_connectivity,
+                                                      cell_numbering);
+        std::vector<long unsigned int> cell_numbering_inverse =
+                    dealii::Utilities::invert_permutation(cell_numbering);
+
+        std::vector<dealii::Point<dim>>    vertices(tria_in.n_vertices());
+        std::vector<dealii::CellData<dim>> cells(tria_in.n_cells(0));
+
+       for (const auto &cell : tria_in.active_cell_iterators())
+          for (const unsigned int v : cell->vertex_indices())
+             vertices[cell->vertex_index(v)] = cell->vertex(v);
+
+
+       for (unsigned int idx = 0; idx < tria_in.n_cells(0); ++idx)
+       { 
+          const unsigned int coarse_cell_idx =
+                  cell_numbering_inverse[idx];
+         typename dealii::Triangulation<dim, dim>::cell_iterator
+                  coarse_cell(&tria_in, 0, coarse_cell_idx);
+
+
+       dealii::CellData<dim> tet(0);
+
+       for (const unsigned int v : coarse_cell->vertex_indices())
+                 tet.vertices.emplace_back(coarse_cell->vertex_index(v));
+                  cells[idx] = tet; //
       }
+
+     tria.create_triangulation(vertices,
+                               cells,
+                               dealii::SubCellData());
+  */    }
       else
       {
         if(this->param.grid.element_type == ElementType::Hypercube)
@@ -214,10 +255,30 @@ private:
         }
         else if(this->param.grid.element_type == ElementType::Simplex)
         {
-          dealii::GridGenerator::subdivided_hyper_cube_with_simplices(tria,
-                                                                      n_cells_1d,
+        
+	 dealii::Triangulation<dim, dim> temp; 
+	 
+	  dealii::GridGenerator::subdivided_hyper_cube_with_simplices(temp,
+                                                                      5, //n_cells_1d,
                                                                       left,
                                                                       right);
+	 temp.refine_global(1);
+	 std::vector<dealii::CellData<dim>> cells(temp.n_cells(temp.n_levels()-1));
+	 for (unsigned int idx = 0; idx < temp.n_cells(1); ++idx)
+	 {
+		  typename dealii::Triangulation<dim, dim>::cell_iterator
+                        coarse_cell(&temp, 1, idx);
+
+
+		  dealii::CellData<dim> tet(0);
+
+                      for (const unsigned int v : coarse_cell->vertex_indices())
+                        tet.vertices.emplace_back(coarse_cell->vertex_index(v));
+                      cells[idx] = tet;
+	 }
+	tria.create_triangulation(temp.get_vertices(),
+                                                   cells,
+                                                   dealii::SubCellData());
         }
         else
         {
@@ -316,9 +377,12 @@ private:
       if(vector_local_refinements.size() > 0)
         refine_local(tria, vector_local_refinements);
 
+      if(!read_external_grid)
+      {
       if(global_refinements > 0)
         tria.refine_global(global_refinements);
-    };
+      }
+     };
 
     GridUtilities::create_triangulation_with_multigrid<dim>(grid,
                                                             this->mpi_comm,
@@ -387,7 +451,7 @@ private:
   double const length = 1.0;
   double const left = -length, right = length;
 
-  bool const read_external_grid = false;
+  bool const read_external_grid = true;
 
   MeshType mesh_type = MeshType::Cartesian;
 };

@@ -8,13 +8,13 @@
         "DegreeMin": "1",
         "DegreeMax": "3",
         "RefineSpaceMin": "0",
-        "RefineSpaceMax": "6"
+        "RefineSpaceMax": "0"
     },
     "Application": {
         "MeshType": "Cartesian"
     },
     "Grid": {
-        "FileName": "/home/still/ExaDG/exadg/lung_reordered_with_boundary_ids.vtk"
+        "FileName": "/home/still/ExaDG/lung_reordered_with_boundary_ids_scaled.vtk"
     },
     "Output": {
         "OutputDirectory": "output/poisson/sine/",
