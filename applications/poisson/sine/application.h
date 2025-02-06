@@ -177,6 +177,8 @@ private:
     this->param.multigrid_data.coarse_problem.solver         = MultigridCoarseGridSolver::CG;
     this->param.multigrid_data.coarse_problem.preconditioner = multigrid_coarse_grid_preconditioner;
     this->param.multigrid_data.coarse_problem.solver_data.rel_tol = 1.e-2;
+
+    this->param.multigrid_data.coarse_problem.amg_data.ml_data.output_details = false;
   }
 
   void
