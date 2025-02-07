@@ -107,13 +107,21 @@ Driver<dim, Number>::solve()
   timer_tree.insert({"Poisson", "Right-hand side"}, timer.wall_time());
 
   // solve linear system of equations
+  double solve_time_current;
+  solve_time = 1e10;
   for (unsigned int jj = 0; jj < 10; ++jj){
 	  sol = 0;
   timer.restart();
   iterations = pde_operator->solve(sol, rhs, 0.0 /* time */);
-  solve_time += timer.wall_time();}
-  solve_time /= 10.0;
- 
+  solve_time_current = timer.wall_time();
+  solve_time = std::min(solve_time, solve_time_current);
+  }
+  
+  this->pcout << std::endl << print_horizontal_line() << std::endl <<std::endl;
+
+  this->pcout << "Total fastest solve time out of 10 in sec: " << solve_time << std::endl;
+
+  this->pcout << std::endl << print_horizontal_line() << std::endl; 
   // postprocessing of results
   timer.restart();
   postprocessor->do_postprocessing(sol);

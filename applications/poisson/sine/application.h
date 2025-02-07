@@ -174,12 +174,20 @@ private:
     this->param.multigrid_data.smoother_data.iterations      = 5;
     this->param.multigrid_data.smoother_data.smoothing_range = 20;
     // MG coarse grid solver
-    this->param.multigrid_data.coarse_problem.solver         = MultigridCoarseGridSolver::CG;
-    this->param.multigrid_data.coarse_problem.preconditioner = multigrid_coarse_grid_preconditioner;
-    this->param.multigrid_data.coarse_problem.solver_data.rel_tol = 1.e-2;
+    this->param.multigrid_data.coarse_problem.solver         = MultigridCoarseGridSolver::AMG;
+    this->param.multigrid_data.coarse_problem.preconditioner = MultigridCoarseGridPreconditioner::PointJacobi; //multigrid_coarse_grid_preconditioner;
+    this->param.multigrid_data.coarse_problem.amg_data.amg_type = AMGType::ML;
+    this->param.multigrid_data.coarse_problem.solver_data.rel_tol = 1.e-3;
 
     this->param.multigrid_data.coarse_problem.amg_data.ml_data.output_details = false;
-  }
+    this->param.multigrid_data.coarse_problem.amg_data.ml_data.n_cycles = 1;
+    this->param.multigrid_data.coarse_problem.amg_data.ml_data.w_cycle = false;
+    this->param.multigrid_data.coarse_problem.amg_data.ml_data.aggregation_threshold = 1e-4;
+    this->param.multigrid_data.coarse_problem.amg_data.ml_data.smoother_sweeps = 2;
+    //this->param.multigrid_data.coarse_problem.amg_data.ml_data.smoother_overlap = 0;
+    this->param.multigrid_data.coarse_problem.amg_data.ml_data.smoother_type = "Chebyshev";
+ 
+ }
 
   void
   create_grid(Grid<dim> &                                       grid,
