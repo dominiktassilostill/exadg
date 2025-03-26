@@ -74,6 +74,8 @@ public:
   {
     AssertThrow(n_cycles == 1, dealii::ExcNotImplemented());
 
+    n_calls = 0;
+
     for(unsigned int level = minlevel; level <= maxlevel; ++level)
     {
       matrix[level]->initialize_dof_vector(solution[level]);
@@ -184,9 +186,11 @@ private:
 #endif
 
       (*coarse)(level, solution[level], defect[level]);
+      n_calls = n_calls + 1;
 
 #if ENABLE_TIMING
-      timer_tree->insert({"Multigrid", "level " + std::to_string(level)}, timer.wall_time());
+      timer_tree->insert({"Multigrid", "level " + std::to_string(level) + " call " + std::to_string(n_calls)}, timer.wall_time());
+      
 #endif
     }
     else
@@ -288,6 +292,8 @@ private:
   MPI_Comm const mpi_comm;
 
   unsigned int const n_cycles;
+
+  mutable unsigned int n_calls;
 
   std::shared_ptr<TimerTree> timer_tree;
 };
