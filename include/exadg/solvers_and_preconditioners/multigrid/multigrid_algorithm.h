@@ -182,6 +182,7 @@ private:
     if(level == minlevel)
     {
 #if ENABLE_TIMING
+      MPI_Barrier(mpi_comm);
       timer.restart();
 #endif
 

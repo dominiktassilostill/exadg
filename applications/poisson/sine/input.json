@@ -5,10 +5,10 @@
         "IsTest": "false"
     },
     "SpatialResolution": {
-        "DegreeMin": "3",
+        "DegreeMin": "1",
         "DegreeMax": "3",
-        "RefineSpaceMin": "4",
-        "RefineSpaceMax": "4"
+        "RefineSpaceMin": "0",
+        "RefineSpaceMax": "0"
     },
     "Application": {
         "MeshType": "Cartesian"

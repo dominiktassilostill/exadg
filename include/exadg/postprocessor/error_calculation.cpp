@@ -63,6 +63,7 @@ calculate_error(MPI_Comm const &                               mpi_comm,
   std::shared_ptr<dealii::Quadrature<dim>> quadrature =
     create_quadrature<dim>(element_type,
                            dof_handler.get_fe().degree + 1);
+  (void) additional_quadrature_points;
 
   // calculate error norm
   dealii::Vector<double> error_norm_per_cell(dof_handler.get_triangulation().n_active_cells());

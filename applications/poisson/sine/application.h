@@ -167,11 +167,11 @@ private:
     this->param.solver_data.max_iter        = 1e4;
     this->param.compute_performance_metrics = true;
     this->param.preconditioner              = Preconditioner::Multigrid;
-    this->param.multigrid_data.type         = MultigridType::cMG;
+    this->param.multigrid_data.type         = MultigridType::cpMG;
     this->param.multigrid_data.p_sequence   = PSequenceType::DecreaseByOne;
     // MG smoother
     this->param.multigrid_data.smoother_data.smoother        = MultigridSmoother::Chebyshev;
-    this->param.multigrid_data.smoother_data.iterations      = 3;
+    this->param.multigrid_data.smoother_data.iterations      = 5;
     this->param.multigrid_data.smoother_data.smoothing_range = 20;
     // MG coarse grid solver
     this->param.multigrid_data.coarse_problem.solver         = MultigridCoarseGridSolver::AMG;
@@ -396,7 +396,7 @@ if(!read_external_grid){
   double const length = 1.0;
   double const left = -length, right = length;
 
-  bool const read_external_grid = false;
+  bool const read_external_grid = true;
 
   MeshType                          mesh_type = MeshType::Cartesian;
   MultigridCoarseGridPreconditioner multigrid_coarse_grid_preconditioner =
