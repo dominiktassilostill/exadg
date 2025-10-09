@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['read_5fwrite_5fdistributed_5fvector_0',['read_write_distributed_vector',['../namespaceExaDG.html#a5b0e6da132568638daf46851b20078a1',1,'ExaDG']]],
+  ['read_5fdeserialization_5fparameters_0',['read_deserialization_parameters',['../namespaceExaDG.html#a08697c7b1c2681f952c75267328f2b0e',1,'ExaDG']]],
   ['readheader_1',['readHeader',['../classdealspectrum_1_1Setup.html#a398598d40bbb1da95cde226559de2fe9',1,'dealspectrum::Setup']]],
   ['rectanglemeshmovementfunctions_2',['RectangleMeshMovementFunctions',['../classExaDG_1_1RectangleMeshMovementFunctions.html',1,'ExaDG']]],
   ['refine_5flocal_3',['refine_local',['../namespaceExaDG.html#ac26ac75e95c9fbc45eaa00fa0c05a2b7',1,'ExaDG']]],
