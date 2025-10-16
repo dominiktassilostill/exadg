@@ -140,7 +140,7 @@ private:
     else
       this->param.equation_type = EquationType::NavierStokes;
     this->param.formulation_viscous_term    = FormulationViscousTerm::LaplaceFormulation;
-    this->param.formulation_convective_term = FormulationConvectiveTerm::ConvectiveFormulation;
+    this->param.formulation_convective_term = FormulationConvectiveTerm::SkewFormulation;
     if(ALE)
       this->param.formulation_convective_term = FormulationConvectiveTerm::ConvectiveFormulation;
     this->param.right_hand_side = false;
@@ -158,7 +158,7 @@ private:
 
     // TEMPORAL DISCRETIZATION
     this->param.solver_type                   = SolverType::Unsteady;
-    this->param.temporal_discretization       = TemporalDiscretization::BDFConsistentSplittingScheme; //
+    this->param.temporal_discretization       = TemporalDiscretization::BDFDualSplittingScheme; //BDFConsistentSplittingScheme
     this->param.treatment_of_convective_term  = TreatmentOfConvectiveTerm::LinearlyImplicit;
     this->param.order_time_integrator         = 2;
     this->param.start_with_low_order          = not read_restart;

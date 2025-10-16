@@ -405,6 +405,12 @@ MomentumOperator<dim, Number>::do_cell_integral(IntegratorCell & integrator) con
       {
         value_flux += convective_kernel->get_volume_flux_convective_formulation(value, gradient, q);
       }
+      else if(operator_data.convective_kernel_data.formulation ==
+        FormulationConvectiveTerm::SkewFormulation)
+      {
+        value_flux += 0.5 * convective_kernel->get_volume_flux_convective_formulation(value, gradient, q);
+        gradient_flux += 0.5 * convective_kernel->get_volume_flux_divergence_formulation(value, q);
+      }
       else
       {
         AssertThrow(false, dealii::ExcMessage("Not implemented."));

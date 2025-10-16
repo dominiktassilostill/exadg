@@ -282,6 +282,25 @@ ConvectiveOperator<dim, Number>::do_cell_integral_nonlinear_operator(
       // integration by parts is performed twice
       integrator.submit_value(F, q);
     }
+    else if(operator_data.kernel_data.formulation ==
+      FormulationConvectiveTerm::SkewFormulation)
+    {
+    // convective formulation: (u * grad) u = grad(u) * u
+    tensor gradient_u = integrator.get_gradient(q);
+
+    vector F = gradient_u * u;
+
+    // plus sign since the strong formulation is used, i.e.
+    // integration by parts is performed twice
+    integrator.submit_value(0.5 * F, q);
+
+     // nonlinear convective flux F(u) = uu
+     tensor F_div = 0.5 * outer_product(u, u);
+     // minus sign due to integration by parts
+     integrator.submit_gradient(- F_div, q);
+
+
+    }
     else
     {
       AssertThrow(false, dealii::ExcMessage("Not implemented."));
@@ -418,6 +437,19 @@ ConvectiveOperator<dim, Number>::do_cell_integral(IntegratorCell & integrator) c
       vector flux = kernel->get_volume_flux_convective_formulation(delta_u, grad_delta_u, q);
 
       integrator.submit_value(flux, q);
+    }
+    else if(operator_data.kernel_data.formulation ==
+      FormulationConvectiveTerm::SkewFormulation)
+    {
+      tensor grad_delta_u = integrator.get_gradient(q);
+
+      vector flux = kernel->get_volume_flux_convective_formulation(delta_u, grad_delta_u, q);
+
+      integrator.submit_value(0.5 * flux, q);
+
+      tensor flux_div = kernel->get_volume_flux_divergence_formulation(delta_u, q);
+
+      integrator.submit_gradient(0.5 * flux_div, q);
     }
     else
     {

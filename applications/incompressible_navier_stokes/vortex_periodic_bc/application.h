@@ -168,6 +168,8 @@ private:
     // pressure level is undefined
     this->param.adjust_pressure_level = AdjustPressureLevel::ApplyZeroMeanValue;
 
+    // this->param.inverse_mass_operator.implementation_type = InverseMassType::GlobalKrylovSolver;
+
     // PROJECTION METHODS
 
     // pressure Poisson equation
@@ -190,7 +192,7 @@ private:
     {
       this->param.solver_momentum         = SolverMomentum::GMRES;
       this->param.solver_data_momentum    = SolverData(1000, ABS_TOL, REL_TOL);
-      this->param.preconditioner_momentum = MomentumPreconditioner::InverseMassMatrix;
+      this->param.preconditioner_momentum = MomentumPreconditioner::PointJacobi;
     }
 
 

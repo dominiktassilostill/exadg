@@ -78,7 +78,8 @@ enum class FormulationConvectiveTerm
 {
   Undefined,
   DivergenceFormulation,
-  ConvectiveFormulation
+  ConvectiveFormulation,
+  SkewFormulation
 };
 
 enum class MeshMovementType
