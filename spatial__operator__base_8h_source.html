@@ -108,7 +108,7 @@ $(function(){ initResizable(false); });
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="comment"> *  GNU General Public License for more details.</span></div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment"> *</span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment"> *  You should have received a copy of the GNU General Public License</span></div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment"> *  along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span></div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment"> *  along with this program. If not, see &lt;https://www.gnu.org/licenses/&gt;.</span></div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="comment"> *  ______________________________________________________________________</span></div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="comment"> */</span></div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
@@ -409,8 +409,8 @@ $(function(){ initResizable(false); });
 <div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>  set_temperature(VectorType <span class="keyword">const</span> &amp; temperature);</div>
 <div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span> </div>
 <div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>  <span class="comment">/*</span></div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment">   * Computation of derived quantities which is needed for postprocessing but some of them are also</span></div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="comment">   * needed, e.g., for special splitting-type time integration schemes.</span></div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment">   * Computation of derived quantities needed for postprocessing but some of them are also needed,</span></div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="comment">   * e.g., for special splitting-type time integration schemes.</span></div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment">   */</span></div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span> </div>
 <div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>  <span class="comment">// vorticity</span></div>
@@ -443,7 +443,7 @@ $(function(){ initResizable(false); });
 <div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span> </div>
 <div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>  <span class="comment">// get the current visosity field as vector</span></div>
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>  <span class="keywordtype">void</span></div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>  access_viscosity(VectorType &amp; dst, VectorType <span class="keyword">const</span> &amp; src) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>  access_viscosity(VectorType &amp; dst) <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span> </div>
 <div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>  <span class="comment">/*</span></div>
 <div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span><span class="comment">   * Operators.</span></div>
@@ -690,12 +690,12 @@ $(function(){ initResizable(false); });
 <div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span> </div>
 <div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>  <span class="comment">// Elementwise solver/preconditioner used in case that only the divergence penalty term is used</span></div>
 <div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>  <span class="comment">// and the system of equations is block-diagonal.</span></div>
-<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classExaDG_1_1Elementwise_1_1OperatorBase.html">Elementwise::OperatorBase&lt;dim, Number, ProjOperator&gt;</a> ELEMENTWISE_PROJ_OPERATOR;</div>
-<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>  std::shared_ptr&lt;ELEMENTWISE_PROJ_OPERATOR&gt;                   elementwise_projection_operator;</div>
+<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classExaDG_1_1Elementwise_1_1OperatorBase.html">Elementwise::OperatorBase&lt;dim, Number, ProjOperator&gt;</a> ElementwiseProjOperator;</div>
+<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>  std::shared_ptr&lt;ElementwiseProjOperator&gt;                     elementwise_projection_operator;</div>
 <div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span> </div>
 <div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classExaDG_1_1Elementwise_1_1PreconditionerBase.html">Elementwise::PreconditionerBase&lt;dealii::VectorizedArray&lt;Number&gt;</a>&gt;</div>
-<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>                                              ELEMENTWISE_PRECONDITIONER;</div>
-<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>  std::shared_ptr&lt;ELEMENTWISE_PRECONDITIONER&gt; elementwise_preconditioner_projection;</div>
+<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>                                                 ElementwisePreconditionerBase;</div>
+<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>  std::shared_ptr&lt;ElementwisePreconditionerBase&gt; elementwise_preconditioner_projection;</div>
 <div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span> </div>
 <div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>  <span class="comment">// global solver/preconditioner to be used if the continuity penalty term is applied.</span></div>
 <div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>  std::shared_ptr&lt;Krylov::SolverBase&lt;VectorType&gt;&gt; projection_solver;</div>
@@ -787,7 +787,7 @@ $(function(){ initResizable(false); });
 <div class="line"><a id="l00704" name="l00704"></a><span class="lineno">  704</span> </div>
 <div class="line"><a id="l00705" name="l00705"></a><span class="lineno">  705</span><span class="preprocessor">#endif </span><span class="comment">/* EXADG_INCOMPRESSIBLE_NAVIER_STOKES_SPATIAL_DISCRETIZATION_SPATIAL_OPERATOR_BASE_H_ \</span></div>
 <div class="line"><a id="l00706" name="l00706"></a><span class="lineno">  706</span><span class="comment">        */</span><span class="preprocessor"></span></div>
-<div class="ttc" id="aclassExaDG_1_1DivergenceCalculator_html"><div class="ttname"><a href="classExaDG_1_1DivergenceCalculator.html">ExaDG::DivergenceCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:36</div></div>
+<div class="ttc" id="aclassExaDG_1_1DivergenceCalculator_html"><div class="ttname"><a href="classExaDG_1_1DivergenceCalculator.html">ExaDG::DivergenceCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:41</div></div>
 <div class="ttc" id="aclassExaDG_1_1Elementwise_1_1OperatorBase_html"><div class="ttname"><a href="classExaDG_1_1Elementwise_1_1OperatorBase.html">ExaDG::Elementwise::OperatorBase</a></div><div class="ttdef"><b>Definition</b> elementwise_operator.h:34</div></div>
 <div class="ttc" id="aclassExaDG_1_1Elementwise_1_1PreconditionerBase_html"><div class="ttname"><a href="classExaDG_1_1Elementwise_1_1PreconditionerBase.html">ExaDG::Elementwise::PreconditionerBase</a></div><div class="ttdef"><b>Definition</b> elementwise_preconditioners.h:41</div></div>
 <div class="ttc" id="aclassExaDG_1_1Grid_html"><div class="ttname"><a href="classExaDG_1_1Grid.html">ExaDG::Grid</a></div><div class="ttdef"><b>Definition</b> grid.h:40</div></div>
@@ -802,17 +802,17 @@ $(function(){ initResizable(false); });
 <div class="ttc" id="aclassExaDG_1_1IncNS_1_1ProjectionOperator_html"><div class="ttname"><a href="classExaDG_1_1IncNS_1_1ProjectionOperator.html">ExaDG::IncNS::ProjectionOperator</a></div><div class="ttdef"><b>Definition</b> projection_operator.h:79</div></div>
 <div class="ttc" id="aclassExaDG_1_1IncNS_1_1RHSOperator_html"><div class="ttname"><a href="classExaDG_1_1IncNS_1_1RHSOperator.html">ExaDG::IncNS::RHSOperator</a></div><div class="ttdef"><b>Definition</b> rhs_operator.h:141</div></div>
 <div class="ttc" id="aclassExaDG_1_1IncNS_1_1SpatialOperatorBase_html"><div class="ttname"><a href="classExaDG_1_1IncNS_1_1SpatialOperatorBase.html">ExaDG::IncNS::SpatialOperatorBase</a></div><div class="ttdef"><b>Definition</b> spatial_operator_base.h:68</div></div>
-<div class="ttc" id="aclassExaDG_1_1IncNS_1_1SpatialOperatorBase_html_a746fffe45a58d19e2a59a596391ba804"><div class="ttname"><a href="classExaDG_1_1IncNS_1_1SpatialOperatorBase.html#a746fffe45a58d19e2a59a596391ba804">ExaDG::IncNS::SpatialOperatorBase::setup</a></div><div class="ttdeci">void setup()</div><div class="ttdef"><b>Definition</b> spatial_operator_base.cpp:680</div></div>
+<div class="ttc" id="aclassExaDG_1_1IncNS_1_1SpatialOperatorBase_html_a746fffe45a58d19e2a59a596391ba804"><div class="ttname"><a href="classExaDG_1_1IncNS_1_1SpatialOperatorBase.html#a746fffe45a58d19e2a59a596391ba804">ExaDG::IncNS::SpatialOperatorBase::setup</a></div><div class="ttdeci">void setup()</div><div class="ttdef"><b>Definition</b> spatial_operator_base.cpp:688</div></div>
 <div class="ttc" id="aclassExaDG_1_1IncNS_1_1TurbulenceModel_html"><div class="ttname"><a href="classExaDG_1_1IncNS_1_1TurbulenceModel.html">ExaDG::IncNS::TurbulenceModel</a></div><div class="ttdef"><b>Definition</b> turbulence_model.h:37</div></div>
 <div class="ttc" id="aclassExaDG_1_1IncNS_1_1ViscousOperator_html"><div class="ttname"><a href="classExaDG_1_1IncNS_1_1ViscousOperator.html">ExaDG::IncNS::ViscousOperator</a></div><div class="ttdef"><b>Definition</b> viscous_operator.h:606</div></div>
-<div class="ttc" id="aclassExaDG_1_1MagnitudeCalculator_html"><div class="ttname"><a href="classExaDG_1_1MagnitudeCalculator.html">ExaDG::MagnitudeCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:192</div></div>
+<div class="ttc" id="aclassExaDG_1_1MagnitudeCalculator_html"><div class="ttname"><a href="classExaDG_1_1MagnitudeCalculator.html">ExaDG::MagnitudeCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:244</div></div>
 <div class="ttc" id="aclassExaDG_1_1MassOperator_html"><div class="ttname"><a href="classExaDG_1_1MassOperator.html">ExaDG::MassOperator</a></div><div class="ttdef"><b>Definition</b> mass_operator.h:53</div></div>
 <div class="ttc" id="aclassExaDG_1_1MultigridMappings_html"><div class="ttname"><a href="classExaDG_1_1MultigridMappings.html">ExaDG::MultigridMappings</a></div><div class="ttdef"><b>Definition</b> grid.h:84</div></div>
 <div class="ttc" id="aclassExaDG_1_1Poisson_1_1MultigridPreconditioner_html"><div class="ttname"><a href="classExaDG_1_1Poisson_1_1MultigridPreconditioner.html">ExaDG::Poisson::MultigridPreconditioner</a></div><div class="ttdef"><b>Definition</b> multigrid_preconditioner.h:39</div></div>
-<div class="ttc" id="aclassExaDG_1_1QCriterionCalculator_html"><div class="ttname"><a href="classExaDG_1_1QCriterionCalculator.html">ExaDG::QCriterionCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:233</div></div>
-<div class="ttc" id="aclassExaDG_1_1ShearRateCalculator_html"><div class="ttname"><a href="classExaDG_1_1ShearRateCalculator.html">ExaDG::ShearRateCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:73</div></div>
-<div class="ttc" id="aclassExaDG_1_1ViscosityCalculator_html"><div class="ttname"><a href="classExaDG_1_1ViscosityCalculator.html">ExaDG::ViscosityCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:151</div></div>
-<div class="ttc" id="aclassExaDG_1_1VorticityCalculator_html"><div class="ttname"><a href="classExaDG_1_1VorticityCalculator.html">ExaDG::VorticityCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:115</div></div>
+<div class="ttc" id="aclassExaDG_1_1QCriterionCalculator_html"><div class="ttname"><a href="classExaDG_1_1QCriterionCalculator.html">ExaDG::QCriterionCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:292</div></div>
+<div class="ttc" id="aclassExaDG_1_1ShearRateCalculator_html"><div class="ttname"><a href="classExaDG_1_1ShearRateCalculator.html">ExaDG::ShearRateCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:94</div></div>
+<div class="ttc" id="aclassExaDG_1_1ViscosityCalculator_html"><div class="ttname"><a href="classExaDG_1_1ViscosityCalculator.html">ExaDG::ViscosityCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:200</div></div>
+<div class="ttc" id="aclassExaDG_1_1VorticityCalculator_html"><div class="ttname"><a href="classExaDG_1_1VorticityCalculator.html">ExaDG::VorticityCalculator</a></div><div class="ttdef"><b>Definition</b> navier_stokes_calculators.h:156</div></div>
 <div class="ttc" id="anamespaceExaDG_html"><div class="ttname"><a href="namespaceExaDG.html">ExaDG</a></div><div class="ttdef"><b>Definition</b> driver.cpp:33</div></div>
 <div class="ttc" id="astructExaDG_1_1IncNS_1_1BoundaryDescriptor_html"><div class="ttname"><a href="structExaDG_1_1IncNS_1_1BoundaryDescriptor.html">ExaDG::IncNS::BoundaryDescriptor</a></div><div class="ttdef"><b>Definition</b> boundary_descriptor.h:240</div></div>
 <div class="ttc" id="astructExaDG_1_1IncNS_1_1FieldFunctions_html"><div class="ttname"><a href="structExaDG_1_1IncNS_1_1FieldFunctions.html">ExaDG::IncNS::FieldFunctions</a></div><div class="ttdef"><b>Definition</b> field_functions.h:31</div></div>

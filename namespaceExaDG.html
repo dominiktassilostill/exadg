@@ -145,6 +145,8 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structExaDG_1_1DeserializationParameters.html">DeserializationParameters</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExaDG_1_1DisplacementJacobianCalculator.html">DisplacementJacobianCalculator</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExaDG_1_1DivergenceCalculator.html">DivergenceCalculator</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structExaDG_1_1EigenvalueTracker.html">EigenvalueTracker</a></td></tr>
@@ -242,6 +244,8 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structExaDG_1_1MassOperatorData.html">MassOperatorData</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structExaDG_1_1MatrixFreeData.html">MatrixFreeData</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExaDG_1_1MaxPrincipalStressCalculator.html">MaxPrincipalStressCalculator</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classExaDG_1_1MeanScalarCalculator.html">MeanScalarCalculator</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -438,6 +442,7 @@ Enumerations</h2></td></tr>
 <tr class="memitem:ad241e807e3ae12b1cc94ac2c966e7dd7" id="r_ad241e807e3ae12b1cc94ac2c966e7dd7"><td class="memItemLeft" align="right" valign="top"><a id="ad241e807e3ae12b1cc94ac2c966e7dd7" name="ad241e807e3ae12b1cc94ac2c966e7dd7"></a>enum class &#160;</td><td class="memItemRight" valign="bottom"><b>PreconditionerMass</b> { <b>None</b>
 , <b>PointJacobi</b>
 , <b>BlockJacobi</b>
+, <b>AMG</b>
  }</td></tr>
 <tr class="separator:ad241e807e3ae12b1cc94ac2c966e7dd7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6fab1270520863c33fa1d350a87b88bd" id="r_a6fab1270520863c33fa1d350a87b88bd"><td class="memItemLeft" align="right" valign="top"><a id="a6fab1270520863c33fa1d350a87b88bd" name="a6fab1270520863c33fa1d350a87b88bd"></a>enum class &#160;</td><td class="memItemRight" valign="bottom"><b>OperatorType</b> { <b>full</b>
@@ -617,10 +622,10 @@ template&lt;int dim&gt; </td></tr>
 <tr class="memitem:ac26ac75e95c9fbc45eaa00fa0c05a2b7" id="r_ac26ac75e95c9fbc45eaa00fa0c05a2b7"><td class="memTemplParams" colspan="2">template&lt;int dim&gt; </td></tr>
 <tr class="memitem:ac26ac75e95c9fbc45eaa00fa0c05a2b7"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="#ac26ac75e95c9fbc45eaa00fa0c05a2b7">refine_local</a> (dealii::Triangulation&lt; dim &gt; &amp;tria, std::vector&lt; unsigned int &gt; const &amp;vector_local_refinements)</td></tr>
 <tr class="separator:ac26ac75e95c9fbc45eaa00fa0c05a2b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a712c204d5e050907f0688deb687e51bf" id="r_a712c204d5e050907f0688deb687e51bf"><td class="memTemplParams" colspan="2"><a id="a712c204d5e050907f0688deb687e51bf" name="a712c204d5e050907f0688deb687e51bf"></a>
+<tr class="memitem:a6f93211ccc0cdddf76b44c441df20582" id="r_a6f93211ccc0cdddf76b44c441df20582"><td class="memTemplParams" colspan="2"><a id="a6f93211ccc0cdddf76b44c441df20582" name="a6f93211ccc0cdddf76b44c441df20582"></a>
 template&lt;int dim&gt; </td></tr>
-<tr class="memitem:a712c204d5e050907f0688deb687e51bf"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>create_periodic_box</b> (dealii::Triangulation&lt; dim &gt; &amp;triangulation, unsigned int const n_refine_space, std::vector&lt; dealii::GridTools::PeriodicFacePair&lt; typename dealii::Triangulation&lt; dim &gt;::cell_iterator &gt; &gt; &amp;periodic_faces, unsigned int const n_subdivisions, double const left, double const right, bool const curvilinear_mesh=false, double const deformation=0.1)</td></tr>
-<tr class="separator:a712c204d5e050907f0688deb687e51bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6f93211ccc0cdddf76b44c441df20582"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>create_periodic_box</b> (dealii::Triangulation&lt; dim &gt; &amp;triangulation, unsigned int const n_refine_space, std::vector&lt; dealii::GridTools::PeriodicFacePair&lt; typename dealii::Triangulation&lt; dim &gt;::cell_iterator &gt; &gt; &amp;periodic_faces, unsigned int const repetitions, double const left, double const right, bool const curvilinear_mesh=false, double const deformation=0.1)</td></tr>
+<tr class="separator:a6f93211ccc0cdddf76b44c441df20582"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a16f67bf1176613b0c1dd812affb3a479" id="r_a16f67bf1176613b0c1dd812affb3a479"><td class="memTemplParams" colspan="2"><a id="a16f67bf1176613b0c1dd812affb3a479" name="a16f67bf1176613b0c1dd812affb3a479"></a>
 template&lt;int dim, typename Number&gt; </td></tr>
 <tr class="memitem:a16f67bf1176613b0c1dd812affb3a479"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>run</b> (<a class="el" href="structExaDG_1_1ThroughputParameters.html">ThroughputParameters</a>&lt; IncNS::OperatorType &gt; const &amp;throughput, std::string const &amp;input_file, unsigned int const degree, unsigned int const refine_space, unsigned int const n_cells_1d, MPI_Comm const &amp;mpi_comm, bool const is_test)</td></tr>
@@ -802,10 +807,6 @@ template&lt;typename <a class="el" href="classExaDG_1_1PreconditionerBase.html">
 template&lt;typename <a class="el" href="classExaDG_1_1PreconditionerBase.html">VectorType</a>&gt; </td></tr>
 <tr class="memitem:a7f64060c31c5af59a2e7e917c7c37e3d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>interpolate</b> (<a class="el" href="classExaDG_1_1PreconditionerBase.html">VectorType</a> &amp;dst, double const &amp;time, std::vector&lt; <a class="el" href="classExaDG_1_1PreconditionerBase.html">VectorType</a> const * &gt; const &amp;solutions, std::vector&lt; double &gt; const &amp;times)</td></tr>
 <tr class="separator:a7f64060c31c5af59a2e7e917c7c37e3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a261e259f1181229273b9206b9961d3dd" id="r_a261e259f1181229273b9206b9961d3dd"><td class="memTemplParams" colspan="2"><a id="a261e259f1181229273b9206b9961d3dd" name="a261e259f1181229273b9206b9961d3dd"></a>
-template&lt;typename <a class="el" href="classExaDG_1_1PreconditionerBase.html">VectorType</a>&gt; </td></tr>
-<tr class="memitem:a261e259f1181229273b9206b9961d3dd"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>push_back</b> (std::vector&lt; <a class="el" href="classExaDG_1_1PreconditionerBase.html">VectorType</a> &gt; &amp;vector)</td></tr>
-<tr class="separator:a261e259f1181229273b9206b9961d3dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8fdae8e603292112cb7539c99eb58cca" id="r_a8fdae8e603292112cb7539c99eb58cca"><td class="memItemLeft" align="right" valign="top"><a id="a8fdae8e603292112cb7539c99eb58cca" name="a8fdae8e603292112cb7539c99eb58cca"></a>
 std::string&#160;</td><td class="memItemRight" valign="bottom"><b>generate_restart_filename</b> (std::string const &amp;name)</td></tr>
 <tr class="separator:a8fdae8e603292112cb7539c99eb58cca"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -867,8 +868,15 @@ double&#160;</td><td class="memItemRight" valign="bottom"><b>adjust_time_step_to
 <tr class="memitem:aa84deaeba572d29b0ae2133dec645b44" id="r_aa84deaeba572d29b0ae2133dec645b44"><td class="memItemLeft" align="right" valign="top"><a id="aa84deaeba572d29b0ae2133dec645b44" name="aa84deaeba572d29b0ae2133dec645b44"></a>
 double&#160;</td><td class="memItemRight" valign="bottom"><b>calculate_const_time_step</b> (double const dt, unsigned int const n_refine_time)</td></tr>
 <tr class="separator:aa84deaeba572d29b0ae2133dec645b44"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9c472b9cd756f7b17183691b4f85f487" id="r_a9c472b9cd756f7b17183691b4f85f487"><td class="memTemplParams" colspan="2"><a id="a9c472b9cd756f7b17183691b4f85f487" name="a9c472b9cd756f7b17183691b4f85f487"></a>
+template&lt;typename <a class="el" href="classExaDG_1_1PreconditionerBase.html">VectorType</a>&gt; </td></tr>
+<tr class="memitem:a9c472b9cd756f7b17183691b4f85f487"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>swap_back_one_step</b> (std::vector&lt; <a class="el" href="classExaDG_1_1PreconditionerBase.html">VectorType</a> &gt; &amp;vector)</td></tr>
+<tr class="separator:a9c472b9cd756f7b17183691b4f85f487"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae37213007b3d71515b9d35a598e17e22" id="r_ae37213007b3d71515b9d35a598e17e22"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae37213007b3d71515b9d35a598e17e22">create_directories</a> (std::string const &amp;directory, MPI_Comm const &amp;mpi_comm)</td></tr>
 <tr class="separator:ae37213007b3d71515b9d35a598e17e22"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a54ca27fb338145905694605ec334f52a" id="r_a54ca27fb338145905694605ec334f52a"><td class="memItemLeft" align="right" valign="top"><a id="a54ca27fb338145905694605ec334f52a" name="a54ca27fb338145905694605ec334f52a"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>evaluate_convergence_study</b> (MPI_Comm const &amp;mpi_comm, std::string const &amp;input_parameter_file)</td></tr>
+<tr class="separator:a54ca27fb338145905694605ec334f52a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2fcc0555e145ada7ade65b6ea59edcf7" id="r_a2fcc0555e145ada7ade65b6ea59edcf7"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2fcc0555e145ada7ade65b6ea59edcf7">DeclExceptionMsg</a> (ExcNotImplemented, &quot;You are trying to use functionality in ExaDG that is &quot; &quot;currently not implemented. In many cases, this indicates &quot; &quot;that there simply didn't appear much of a need for it, or &quot; &quot;that the author of the original code did not have the &quot; &quot;time to implement a particular case. If you hit this &quot; &quot;exception, it is therefore worth the time to look into &quot; &quot;the code to find out whether you may be able to &quot; &quot;implement the missing functionality. If you do, please &quot; &quot;consider providing a patch to the ExaDG development &quot; &quot;sources (see the ExaDG Wiki page on how to contribute).&quot;)</td></tr>
 <tr class="separator:a2fcc0555e145ada7ade65b6ea59edcf7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a73c483ba4be3aa1154ad102a8cec57c8" id="r_a73c483ba4be3aa1154ad102a8cec57c8"><td class="memItemLeft" align="right" valign="top"><a id="a73c483ba4be3aa1154ad102a8cec57c8" name="a73c483ba4be3aa1154ad102a8cec57c8"></a>
