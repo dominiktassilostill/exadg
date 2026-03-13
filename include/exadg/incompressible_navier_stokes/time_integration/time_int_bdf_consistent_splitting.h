@@ -110,6 +110,13 @@ private:
   rhs_pressure(VectorType & rhs) const;
 
   void
+  leray_step();
+
+  void
+  rhs_leray(VectorType & rhs) const;
+
+  
+  void
   momentum_step();
 
   void
@@ -146,7 +153,9 @@ private:
 
   VectorType pressure_np;
 
-  std::vector<VectorType> velocity_divergence;
+  std::vector<VectorType> phi;
+
+  VectorType phi_np;
 
   std::vector<VectorType> vec_convective_term_div;
 

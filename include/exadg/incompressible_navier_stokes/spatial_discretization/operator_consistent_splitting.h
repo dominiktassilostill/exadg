@@ -73,7 +73,7 @@ public:
    */
   // Leray projection
   void
-  apply_velocity_divergence_term(VectorType & dst, VectorType const & src) const;
+  evaluate_divergence(VectorType & dst, VectorType const & src) const;
 
   // rhs pressure: divergence of convective term
   void
@@ -87,8 +87,9 @@ public:
   void
   rhs_ppe_nbc_add(VectorType &       dst,
                   VectorType const & src,
-                  double const &     time,
-                  Number const       gamma_dt) const;
+                  double const &     dt,
+                  const std::vector<double> &time,
+                const std::vector<double> &alpha) const;
 
   /*
    * Viscous step.
@@ -121,7 +122,9 @@ private:
    * Right-hand side of the PPE
    */
   // The bdf constant for the time derivative divded by the timestep size
-  mutable Number gamma0_dt;
+  mutable Number dt;
+  mutable std::vector<double> times;
+  mutable std::vector<double> alphas;
 
   // body force term
   void

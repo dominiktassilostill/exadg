@@ -61,11 +61,11 @@ OperatorConsistentSplitting<dim, Number>::~OperatorConsistentSplitting()
 
 template<int dim, typename Number>
 void
-OperatorConsistentSplitting<dim, Number>::apply_velocity_divergence_term(
+OperatorConsistentSplitting<dim, Number>::evaluate_divergence(
   VectorType &       dst,
   VectorType const & src) const
 {
-  this->divergence_operator.apply(dst, src);
+  this->divergence_operator.evaluate(dst, src);
 }
 
 template<int dim, typename Number>
@@ -375,11 +375,14 @@ template<int dim, typename Number>
 void
 OperatorConsistentSplitting<dim, Number>::rhs_ppe_nbc_add(VectorType &       dst,
                                                           VectorType const & src,
-                                                          double const &     time,
-                                                          Number const       gamma_dt) const
+                                                          double const &     dt,
+                                                          const std::vector<double> &time,
+                                                          const std::vector<double> &alpha) const
 {
-  this->evaluation_time = time;
-  this->gamma0_dt       = gamma_dt;
+  this->evaluation_time = time[0];
+  this->alphas = alpha;
+  this->times = time;
+  this->dt = dt;
 
   this->get_matrix_free().loop(&This::cell_loop_empty,
                                &This::face_loop_empty,
@@ -418,26 +421,28 @@ OperatorConsistentSplitting<dim, Number>::local_rhs_ppe_nbc_add_boundary_face(
       integrator_pressure.reinit(face);
 
       vector g = vector();
+      g = 0.;
 
       for(unsigned int q = 0; q < integrator_pressure.n_q_points; ++q)
       {
-        // First handle the time derivative
-        if(boundary_type == BoundaryTypeU::Dirichlet)
+        for(unsigned int i = 0; i < this->alphas.size(); ++i)
         {
-          auto bc = this->boundary_descriptor->velocity->dirichlet_bc.find(boundary_id)->second;
-          auto const q_point = integrator_pressure.quadrature_point(q);
+          // First handle the time derivative
+          if(boundary_type == BoundaryTypeU::Dirichlet)
+          {
+            auto bc = this->boundary_descriptor->velocity->dirichlet_bc.find(boundary_id)->second;
+            auto const q_point = integrator_pressure.quadrature_point(q);
 
-          g = FunctionEvaluator<1, dim, Number>::value(*bc, q_point, this->evaluation_time);
-        }
-        else if(boundary_type == BoundaryTypeU::DirichletCached)
-        {
-          auto bc = this->boundary_descriptor->velocity->get_dirichlet_cached_data();
-
-          g = FunctionEvaluator<1, dim, Number>::value(*bc, face, q, quad_index_velocity);
-        }
-        else
-        {
-          AssertThrow(false, dealii::ExcMessage("Not implemented."));
+            g += this->alphas[i]/this->dt * FunctionEvaluator<1, dim, Number>::value(*bc, q_point, this->times[i]);
+          }
+          else if(boundary_type == BoundaryTypeU::DirichletCached)
+          {
+            AssertThrow(false, dealii::ExcMessage("Not implemented."));
+          }
+          else
+          {
+            AssertThrow(false, dealii::ExcMessage("Not implemented."));
+          }
         }
         vector const normal = integrator_pressure.normal_vector(q);
         vector const dudt   = this->gamma0_dt * g;
