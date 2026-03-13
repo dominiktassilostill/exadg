@@ -692,7 +692,8 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_momentum(
   /*
    *  calculate sum (alpha_i/dt * u_i) and apply mass operator to this vector
    */
-  VectorType sum_alphai_ui(velocity[0], true);
+  VectorType sum_alphai_ui;
+  sum_alphai_ui.reinit(velocity[0], true);
 
   // calculate sum (alpha_i/dt * u_i)
   sum_alphai_ui.equ(this->bdf.get_alpha(0) / this->get_time_step_size(), velocity[0]);
