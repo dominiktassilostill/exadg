@@ -283,10 +283,29 @@ TimeIntBDFConsistentSplitting<dim, Number>::do_timestep_solve()
 {
   if(this->param.do_pressure_step_first)
   {
-    pressure_step();
+    first_iteration = true;
+    keep_iterating = true;
 
-    momentum_step();
+    VectorType old_velocity;
+    old_velocity.reinit(velocity_np, true);
+    old_velocity.equ(this->extra.get_beta(0), velocity[0]);
+    for(unsigned int i = 1; i < velocity.size(); ++i)
+    {
+      old_velocity.add(this->extra.get_beta(i), velocity[i]);
+    }
 
+    while(keep_iterating)
+    {
+      pressure_step();
+
+      momentum_step();
+
+      first_iteration = false;
+      old_velocity.add(-1.0, velocity_np);
+      if(old_velocity.l2_norm() < 1e-8)
+        keep_iterating = false;
+      old_velocity.equ(1.0, velocity_np);
+    }
     if(this->param.apply_penalty_terms_in_postprocessing_step)
       penalty_step();
 
@@ -381,7 +400,7 @@ TimeIntBDFConsistentSplitting<dim, Number>::pressure_step()
   rhs_pressure(rhs);
 
   // extrapolate old solution to get a good initial estimate for the solver
-  if(this->use_extrapolation)
+  if(this->use_extrapolation && first_iteration)
   {
     pressure_np.equ(this->extra.get_beta(0), pressure[0]);
     for(unsigned int i = 1; i < pressure.size(); ++i)
@@ -389,7 +408,7 @@ TimeIntBDFConsistentSplitting<dim, Number>::pressure_step()
       pressure_np.add(this->extra.get_beta(i), pressure[i]);
     }
   }
-  else
+  else if(!this->use_extrapolation)
   {
     pressure_np = 0;
   }
@@ -429,7 +448,7 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_pressure(VectorType & rhs) const
   /*
    *  I. divergence of convective term
    */
-  if(this->param.do_pressure_step_first)
+  if(this->param.do_pressure_step_first && first_iteration)
   {
     // extrapolate
     rhs.equ(extra_pressure_rhs.get_beta(0), this->vec_convective_term_div[0]);
@@ -450,7 +469,7 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_pressure(VectorType & rhs) const
   /*
    *  III. calculate Leray projection
    */
-  if(this->param.do_pressure_step_first && this->param.apply_leray_projection)
+   if(this->param.do_pressure_step_first && this->param.apply_leray_projection && first_iteration)
     for(unsigned int i = 0; i < velocity_divergence.size(); ++i)
       rhs.add(-this->bdf.get_alpha(i) / this->get_time_step_size(), velocity_divergence[i]);
 
@@ -462,7 +481,7 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_pressure(VectorType & rhs) const
    */
   VectorType velocity_extra;
   velocity_extra.reinit(velocity_np, true);
-  if(this->param.do_pressure_step_first)
+  if(this->param.do_pressure_step_first && first_iteration)
   {
     velocity_extra.equ(this->extra_pressure_nbc.get_beta(0), velocity[0]);
     for(unsigned int i = 1; i < extra_pressure_nbc.get_order(); ++i)
@@ -479,7 +498,7 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_pressure(VectorType & rhs) const
 
   // If Leray projection is not applied then the contributions from the old time derivative do not
   // cancel, so they have to be added
-  if(!this->param.do_pressure_step_first || !this->param.apply_leray_projection)
+  if(!this->param.do_pressure_step_first || !this->param.apply_leray_projection || !first_iteration)
   {
     // Set curl to 0 as it was already added
     velocity_extra = 0.0;
@@ -523,13 +542,15 @@ TimeIntBDFConsistentSplitting<dim, Number>::momentum_step()
   // in case we need to iteratively solve a linear or nonlinear system of equations
   if(this->param.viscous_problem() or this->param.non_explicit_convective_problem())
   {
-    // Extrapolate old solutions to get a good initial estimate for the solver.
-    velocity_np.equ(this->extra.get_beta(0), velocity[0]);
-    for(unsigned int i = 1; i < velocity.size(); ++i)
+    if(first_iteration)
     {
-      velocity_np.add(this->extra.get_beta(i), velocity[i]);
+      // Extrapolate old solutions to get a good initial estimate for the solver.
+      velocity_np.equ(this->extra.get_beta(0), velocity[0]);
+      for(unsigned int i = 1; i < velocity.size(); ++i)
+      {
+        velocity_np.add(this->extra.get_beta(i), velocity[i]);
+      }
     }
-
     bool const update_preconditioner =
       this->param.update_preconditioner_momentum and
       ((this->time_step_number - 1) % this->param.update_preconditioner_momentum_every_time_steps ==
@@ -636,32 +657,27 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_momentum(
   /*
    *  Pressure gradient term
    */
-  if(this->param.do_pressure_step_first)
-  {
-    pde_operator->evaluate_pressure_gradient_term(rhs, pressure_np, this->get_next_time());
-
-    rhs *= -1.0;
-  }
-  else
-  {
     VectorType pressure_extrapolated;
     pressure_extrapolated.reinit(pressure_np, true /* omit_zeroing_entries */);
-
+    
+    if(this->param.do_pressure_step_first)
+      pressure_extrapolated.equ(-1.0, pressure_np);
+    else
+    {
     pressure_extrapolated.equ(-1.0 * this->extra_pressure_rhs.get_beta(0), pressure[0]);
-    for(unsigned int i = 1; i < this->extra_pressure_rhs.get_order(); ++i)
-      pressure_extrapolated.add(-1.0 * this->extra_pressure_rhs.get_beta(i), pressure[i]);
+      for(unsigned int i = 1; i < this->extra_pressure_rhs.get_order(); ++i)
+        pressure_extrapolated.add(-1.0 * this->extra_pressure_rhs.get_beta(i), pressure[i]);
+    }
 
-    if(this->param.apply_leray_projection)
+    // Leray
+    if(this->param.apply_leray_projection && !first_iteration)
       for(unsigned int i = 0; i < this->bdf.get_order(); ++i)
       {
         pressure_extrapolated.add(this->bdf.get_alpha(i) / this->get_time_step_size(),
                                   vec_phi[i]);
       }
 
-    pde_operator->evaluate_pressure_gradient_term(rhs,
-                                                  pressure_extrapolated,
-                                                  this->get_next_time());
-  }
+  pde_operator->evaluate_pressure_gradient_term(rhs, pressure_extrapolated, this->get_next_time());
 
   /*
    *  Body force term
@@ -791,11 +807,8 @@ TimeIntBDFConsistentSplitting<dim, Number>::prepare_vectors_for_next_timestep()
     pde_operator->apply_velocity_divergence_term(velocity_divergence[0], velocity[0]);
   }
 
-  if(!this->param.do_pressure_step_first && this->param.apply_leray_projection)
-  {
-    swap_back_one_step(vec_phi);
-    vec_phi[0].swap(phi);
-  }
+  swap_back_one_step(vec_phi);
+  vec_phi[0].swap(phi);
 
   // Compute divergence of convective term
   if(this->param.do_pressure_step_first)

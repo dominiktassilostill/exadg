@@ -162,6 +162,9 @@ private:
   VectorType phi;
   std::vector<VectorType> vec_phi;
 
+  bool first_iteration;
+  bool keep_iterating;
+
 
   // iteration counts
   std::pair<unsigned int /* calls */, unsigned long long /* iteration counts */>
