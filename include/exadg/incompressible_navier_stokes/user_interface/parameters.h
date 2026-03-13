@@ -625,6 +625,8 @@ public:
   // use of Leray projection
   bool apply_leray_projection;
 
+  bool do_pressure_step_first;
+
   /**************************************************************************************/
   /*                                                                                    */
   /*                            PRESSURE-CORRECTION SCHEME                              */

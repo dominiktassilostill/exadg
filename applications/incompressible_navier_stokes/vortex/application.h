@@ -384,6 +384,7 @@ private:
     // CONSISTENT SPLITTING SCHEME
     this->param.order_extrapolation_pressure_rhs = 2;
     this->param.apply_leray_projection           = true;
+    this->param.do_pressure_step_first = false;
 
     // PRESSURE-CORRECTION SCHEME
 

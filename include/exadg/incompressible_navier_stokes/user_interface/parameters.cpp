@@ -182,6 +182,7 @@ Parameters::Parameters()
     order_extrapolation_pressure_rhs((order_time_integrator <= 2) ? order_time_integrator :
                                                                     order_time_integrator - 1),
     apply_leray_projection(true),
+    do_pressure_step_first(true),
 
     // PRESSURE-CORRECTION SCHEME
 
@@ -1175,6 +1176,10 @@ Parameters::print_parameters_consistent_splitting(dealii::ConditionalOStream con
   // Leray projection
   if(apply_leray_projection)
     pcout << "  Apply Leray projection in the PPE" << std::endl;
+  if(do_pressure_step_first)
+    pcout << "  Pressure step first" << std::endl;
+  else
+    pcout << "  Momentum step first" << std::endl;
 
   // formulations
   pcout << "  Order of extrapolation ..." << std::endl;

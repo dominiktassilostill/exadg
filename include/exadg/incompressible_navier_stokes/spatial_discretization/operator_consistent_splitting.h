@@ -75,6 +75,10 @@ public:
   void
   apply_velocity_divergence_term(VectorType & dst, VectorType const & src) const;
 
+  void
+  evaluate_velocity_divergence_term(VectorType & dst, VectorType const & src, double const & time) const;
+
+
   // rhs pressure: divergence of convective term
   void
   apply_convective_divergence_term(VectorType & dst, VectorType const & src) const;

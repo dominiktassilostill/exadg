@@ -110,6 +110,12 @@ private:
   rhs_pressure(VectorType & rhs) const;
 
   void
+  solve_leray_projection();
+
+  void
+  rhs_leray(VectorType & rhs) const;
+
+  void
   momentum_step();
 
   void

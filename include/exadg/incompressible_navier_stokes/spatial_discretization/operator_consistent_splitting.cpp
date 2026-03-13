@@ -70,6 +70,16 @@ OperatorConsistentSplitting<dim, Number>::apply_velocity_divergence_term(
 
 template<int dim, typename Number>
 void
+OperatorConsistentSplitting<dim, Number>::evaluate_velocity_divergence_term(
+  VectorType &       dst,
+  VectorType const & src,
+  double const & time) const
+{
+  this->divergence_operator.evaluate(dst, src, time);
+}
+
+template<int dim, typename Number>
+void
 OperatorConsistentSplitting<dim, Number>::apply_convective_divergence_term(
   VectorType &       dst,
   VectorType const & src) const
