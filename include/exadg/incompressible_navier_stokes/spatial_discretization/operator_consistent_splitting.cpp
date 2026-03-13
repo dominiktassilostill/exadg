@@ -63,9 +63,10 @@ template<int dim, typename Number>
 void
 OperatorConsistentSplitting<dim, Number>::evaluate_divergence(
   VectorType &       dst,
-  VectorType const & src) const
+  VectorType const & src,
+const double &t) const
 {
-  this->divergence_operator.evaluate(dst, src);
+  this->divergence_operator.evaluate(dst, src, t);
 }
 
 template<int dim, typename Number>
@@ -445,8 +446,7 @@ OperatorConsistentSplitting<dim, Number>::local_rhs_ppe_nbc_add_boundary_face(
           }
         }
         vector const normal = integrator_pressure.normal_vector(q);
-        vector const dudt   = this->gamma0_dt * g;
-        scalar const h_dudt = -dudt * normal;
+        scalar const h_dudt = -g * normal;
 
         // Now add the curl-curl term
         scalar const viscosity  = this->get_viscosity_boundary_face(face, q);

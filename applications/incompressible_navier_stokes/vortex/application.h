@@ -275,7 +275,7 @@ private:
     this->param.solver_type                  = SolverType::Unsteady;
     this->param.temporal_discretization      = TemporalDiscretization::BDFConsistentSplitting;
     this->param.treatment_of_convective_term = treatment_of_convective_term;
-    this->param.order_time_integrator        = 2;
+    this->param.order_time_integrator        = 4;
     this->param.start_with_low_order         = false;
     this->param.adaptive_time_stepping       = false;
     this->param.calculation_of_time_step_size =
@@ -335,7 +335,7 @@ private:
     // PROJECTION METHODS
 
     // pressure Poisson equation
-    this->param.solver_data_pressure_poisson         = SolverData(1000, 1.e-12, 1.e-6, LinearSolver::CG, 100);
+    this->param.solver_data_pressure_poisson         = SolverData(10000, 1.e-12, 1.e-6, LinearSolver::CG, 100);
     this->param.preconditioner_pressure_poisson      = PreconditionerPressurePoisson::Multigrid;
     this->param.multigrid_data_pressure_poisson.type = MultigridType::cphMG;
     this->param.multigrid_data_pressure_poisson.coarse_problem.solver =
@@ -348,7 +348,7 @@ private:
       PreconditionerSmoother::PointJacobi;
 
     // projection step
-    this->param.solver_data_projection    = SolverData(1000, 1.e-12, 1.e-6, LinearSolver::CG);
+    this->param.solver_data_projection    = SolverData(10000, 1.e-12, 1.e-6, LinearSolver::CG);
     this->param.preconditioner_projection = PreconditionerProjection::InverseMassMatrix;
     this->param.preconditioner_block_diagonal_projection =
       Elementwise::Preconditioner::InverseMassMatrix;
@@ -382,8 +382,12 @@ private:
     }
 
     // CONSISTENT SPLITTING SCHEME
-    this->param.order_extrapolation_pressure_rhs = 2;
+    this->param.order_extrapolation_pressure_rhs = 3;
+    this->param.order_extrapolation_pressure_nbc = 3;
     this->param.apply_leray_projection           = true;
+
+    this->param.solver_data_momentum = SolverData(10000, 1.e-12, 1.e-6, LinearSolver::GMRES, 100);
+    this->param.preconditioner_momentum = MomentumPreconditioner::InverseMassMatrix; // Multigrid;
 
     // PRESSURE-CORRECTION SCHEME
 

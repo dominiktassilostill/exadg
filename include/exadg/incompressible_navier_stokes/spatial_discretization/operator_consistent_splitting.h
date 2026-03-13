@@ -73,7 +73,7 @@ public:
    */
   // Leray projection
   void
-  evaluate_divergence(VectorType & dst, VectorType const & src) const;
+  evaluate_divergence(VectorType & dst, VectorType const & src, const double &t) const;
 
   // rhs pressure: divergence of convective term
   void

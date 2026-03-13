@@ -391,7 +391,7 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_pressure(VectorType & rhs) const
   // Now actually add the curl-curl term and the time derivative to the rhs
   std::vector<double> t;
   std::vector<VectorType const *> v;
-  get_velocities_and_times_np(v,t);
+  this->get_velocities_and_times_np(v,t);
   std::vector<double> alphas;
   alphas.push_back(this->bdf.get_gamma0());
   for(unsigned int i = 0; i < this->bdf.get_order(); ++i)
