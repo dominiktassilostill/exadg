@@ -110,7 +110,7 @@ private:
   rhs_pressure(VectorType & rhs) const;
 
   void
-  solve_leray_projection();
+  leray_projection();
 
   void
   rhs_leray(VectorType & rhs) const;
@@ -158,6 +158,10 @@ private:
 
   std::vector<VectorType> velocity_dbc;
   VectorType              velocity_dbc_np;
+
+  VectorType phi;
+  std::vector<VectorType> vec_phi;
+
 
   // iteration counts
   std::pair<unsigned int /* calls */, unsigned long long /* iteration counts */>
