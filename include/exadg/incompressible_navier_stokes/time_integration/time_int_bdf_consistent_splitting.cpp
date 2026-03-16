@@ -268,9 +268,42 @@ template<int dim, typename Number>
 void
 TimeIntBDFConsistentSplitting<dim, Number>::do_timestep_solve()
 {
-  pressure_step();
+  dealii::Timer timer;
+  timer.restart();
 
-  momentum_step();
+  bool not_converged = true;
+  first_iteration = true;
+
+  VectorType start_of_iteration_velocity;
+  start_of_iteration_velocity.reinit(velocity_np, true /*omit_zeros*/);
+
+  start_of_iteration_velocity.equ(this->extra.get_beta(0), velocity[0]);
+  for(unsigned int i = 1; i < velocity.size(); ++i)
+  {
+    start_of_iteration_velocity.add(this->extra.get_beta(i), velocity[i]);
+  }
+
+  unsigned int inner_iterations = 0;
+  while(not_converged && inner_iterations < 1000)
+  {
+    pressure_step();
+
+    momentum_step();
+
+    first_iteration = false;
+    start_of_iteration_velocity.add(-1.0, velocity_np);
+    if(start_of_iteration_velocity.l2_norm() < 1e-6)
+      not_converged = false;
+
+    start_of_iteration_velocity.equ(1.0, velocity_np);
+    ++inner_iterations;
+  }
+
+  if(this->print_solver_info() and not(this->is_test))
+  {
+    this->pcout << std::endl << "Number of inner iterations:";
+    print_solver_info_linear(this->pcout, inner_iterations, timer.wall_time());
+  }
 
   if(this->param.apply_penalty_terms_in_postprocessing_step)
     penalty_step();
@@ -309,17 +342,21 @@ TimeIntBDFConsistentSplitting<dim, Number>::pressure_step()
   rhs_pressure(rhs);
 
   // extrapolate old solution to get a good initial estimate for the solver
-  if(this->use_extrapolation)
+  // for the first iteration it can be set to anything, after that do not change it
+  if(first_iteration)
   {
-    pressure_np.equ(this->extra.get_beta(0), pressure[0]);
-    for(unsigned int i = 1; i < pressure.size(); ++i)
+    if(this->use_extrapolation)
     {
-      pressure_np.add(this->extra.get_beta(i), pressure[i]);
+      pressure_np.equ(this->extra_pressure_rhs.get_beta(0), pressure[0]);
+      for(unsigned int i = 1; i < this->extra_pressure_rhs.get_order(); ++i)
+      {
+        pressure_np.add(this->extra_pressure_rhs.get_beta(i), pressure[i]);
+      }
     }
-  }
-  else
-  {
-    pressure_np = 0;
+    else
+    {
+      pressure_np = 0;
+    }
   }
 
   // solve linear system of equations
@@ -357,9 +394,17 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_pressure(VectorType & rhs) const
   /*
    *  I. convective extrapolation
    */
-  rhs.equ(extra_pressure_rhs.get_beta(0), this->vec_convective_term_div[0]);
-  for(unsigned int i = 1; i < extra_pressure_rhs.get_order(); ++i)
-    rhs.add(extra_pressure_rhs.get_beta(i), this->vec_convective_term_div[i]);
+  if(first_iteration)
+  {
+    rhs.equ(extra_pressure_rhs.get_beta(0), this->vec_convective_term_div[0]);
+    for(unsigned int i = 1; i < extra_pressure_rhs.get_order(); ++i)
+      rhs.add(extra_pressure_rhs.get_beta(i), this->vec_convective_term_div[i]);
+  }
+  else
+  {
+    rhs = 0.;
+    pde_operator->apply_convective_divergence_term(rhs, velocity_np);
+  }
 
   /*
    *  II. forcing term
@@ -382,11 +427,16 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_pressure(VectorType & rhs) const
    */
   VectorType velocity_extra;
   velocity_extra.reinit(velocity_np, true);
-  velocity_extra.equ(this->extra_pressure_nbc.get_beta(0), velocity[0]);
-  for(unsigned int i = 1; i < extra_pressure_nbc.get_order(); ++i)
+  if(first_iteration)
   {
-    velocity_extra.add(this->extra_pressure_nbc.get_beta(i), velocity[i]);
+    velocity_extra.equ(this->extra_pressure_nbc.get_beta(0), velocity[0]);
+    for(unsigned int i = 1; i < extra_pressure_nbc.get_order(); ++i)
+    {
+      velocity_extra.add(this->extra_pressure_nbc.get_beta(i), velocity[i]);
+    }
   }
+  else
+    velocity_extra.equ(1.0, velocity_np);
 
   VectorType vorticity;
   vorticity.reinit(velocity_extra);
@@ -438,10 +488,13 @@ TimeIntBDFConsistentSplitting<dim, Number>::momentum_step()
   if(this->param.viscous_problem() or this->param.non_explicit_convective_problem())
   {
     // Extrapolate old solutions to get a good initial estimate for the solver.
-    velocity_np.equ(this->extra.get_beta(0), velocity[0]);
-    for(unsigned int i = 1; i < velocity.size(); ++i)
+    if(first_iteration)
     {
-      velocity_np.add(this->extra.get_beta(i), velocity[i]);
+      velocity_np.equ(this->extra.get_beta(0), velocity[0]);
+      for(unsigned int i = 1; i < velocity.size(); ++i)
+      {
+        velocity_np.add(this->extra.get_beta(i), velocity[i]);
+      }
     }
 
     bool const update_preconditioner =

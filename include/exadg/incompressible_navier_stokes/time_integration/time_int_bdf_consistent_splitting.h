@@ -153,6 +153,8 @@ private:
   std::vector<VectorType> velocity_dbc;
   VectorType              velocity_dbc_np;
 
+  bool first_iteration;
+
   // iteration counts
   std::pair<unsigned int /* calls */, unsigned long long /* iteration counts */>
     iterations_pressure;
