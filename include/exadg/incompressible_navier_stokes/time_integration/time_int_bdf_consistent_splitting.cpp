@@ -55,7 +55,8 @@ TimeIntBDFConsistentSplitting<dim, Number>::TimeIntBDFConsistentSplitting(
     extra_pressure_nbc(this->param.order_extrapolation_pressure_nbc,
                        this->param.start_with_low_order),
     extra_pressure_rhs(this->param.order_extrapolation_pressure_rhs,
-                       this->param.start_with_low_order)
+                       this->param.start_with_low_order),
+    extra_traction(this->param.order_extrapolation_traction, this->param.start_with_low_order)
 {
 }
 
@@ -75,6 +76,9 @@ TimeIntBDFConsistentSplitting<dim, Number>::update_time_integrator_constants()
                             this->adaptive_time_stepping,
                             this->get_time_step_vector());
 
+  extra_traction.update(this->get_time_step_number(),
+                        this->adaptive_time_stepping,
+                        this->get_time_step_vector());
   // use this function to check the correctness of the time integrator constants
   //    std::cout << "Coefficients extrapolation scheme pressure NBC:" << std::endl;
   //    extra_pressure_nbc.print(this->pcout);
@@ -272,7 +276,7 @@ TimeIntBDFConsistentSplitting<dim, Number>::do_timestep_solve()
   timer.restart();
 
   bool not_converged = true;
-  first_iteration = true;
+  first_iteration    = true;
 
   VectorType start_of_iteration_velocity;
   start_of_iteration_velocity.reinit(velocity_np, true /*omit_zeros*/);
@@ -284,7 +288,7 @@ TimeIntBDFConsistentSplitting<dim, Number>::do_timestep_solve()
   }
 
   unsigned int inner_iterations = 0;
-  while(not_converged && inner_iterations < 1000)
+  while(not_converged && inner_iterations < 1)
   {
     pressure_step();
 
@@ -463,7 +467,25 @@ TimeIntBDFConsistentSplitting<dim, Number>::rhs_pressure(VectorType & rhs) const
   }
 
   // IV.2. pressure Dirichlet boundary conditions
-  pde_operator->do_rhs_ppe_laplace_add(rhs, this->get_next_time());
+  const bool use_full_traction = true;
+  if(use_full_traction)
+  {
+    if(first_iteration)
+    {
+      velocity_extra.equ(this->extra_traction.get_beta(0), velocity[0]);
+      for(unsigned int i = 1; i < extra_traction.get_order(); ++i)
+      {
+        velocity_extra.add(this->extra_traction.get_beta(i), velocity[i]);
+      }
+    }
+    else
+    {
+      velocity_extra.equ(1.0, velocity_np);
+    }
+    pde_operator->do_rhs_ppe_laplace_add_full_traction(rhs, velocity_extra, this->get_next_time());
+  }
+  else
+    pde_operator->do_rhs_ppe_laplace_add(rhs, this->get_next_time());
 
 
   // special case: pressure level is undefined

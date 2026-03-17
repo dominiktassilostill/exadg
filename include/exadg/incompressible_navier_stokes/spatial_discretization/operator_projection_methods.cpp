@@ -376,6 +376,18 @@ OperatorProjectionMethods<dim, Number>::do_rhs_ppe_laplace_add(VectorType &   ds
   this->laplace_operator.rhs_add(dst);
 }
 
+
+template<int dim, typename Number>
+void
+OperatorProjectionMethods<dim, Number>::do_rhs_ppe_laplace_add_full_traction(
+  VectorType &       dst,
+  VectorType const & src,
+  double const &     time) const
+{
+  this->laplace_operator.set_time(time);
+  this->laplace_operator.rhs_add_full_traction(dst, src);
+}
+
 template<int dim, typename Number>
 unsigned int
 OperatorProjectionMethods<dim, Number>::do_solve_pressure(VectorType &       dst,

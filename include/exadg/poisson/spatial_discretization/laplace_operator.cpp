@@ -264,6 +264,100 @@ LaplaceOperator<dim, Number, n_components>::do_boundary_integral(
   }
 }
 
+
+
+template<int dim, typename Number, int n_components>
+void
+LaplaceOperator<dim, Number, n_components>::do_boundary_integral_traction(
+  IntegratorFace &                                                                     integrator_m,
+  dealii::FEFaceEvaluation<dim, -1, 0, dim, Number, dealii::VectorizedArray<Number>> & integrator_u,
+  OperatorType const &               operator_type,
+  dealii::types::boundary_id const & boundary_id) const
+{
+  BoundaryType boundary_type = operator_data.bc->get_boundary_type(boundary_id);
+
+  for(unsigned int q = 0; q < integrator_m.n_q_points; ++q)
+  {
+    value value_m = dealii::Tensor<rank, dim, dealii::VectorizedArray<Number>>();
+    value value_p = calculate_exterior_value<dim, Number, n_components, rank>(value_m,
+                                                                              q,
+                                                                              integrator_m,
+                                                                              operator_type,
+                                                                              boundary_type,
+                                                                              boundary_id,
+                                                                              operator_data.bc,
+                                                                              this->time);
+
+    // value p is 2*g_p
+    if(boundary_type == BoundaryType::Dirichlet or boundary_type == BoundaryType::DirichletCached)
+    {
+      dealii::Tensor<1, dim, dealii::VectorizedArray<Number>> g_p;
+      if constexpr(rank == 0)
+        g_p = 0.5 * value_p * integrator_m.normal_vector(q);
+      else
+        DEAL_II_NOT_IMPLEMENTED();
+      const auto point = integrator_m.quadrature_point(q);
+      dealii::Tensor<1, dim, dealii::VectorizedArray<Number>> h_u;
+      double const                                            t         = this->time;
+      double const                                            pi        = dealii::numbers::PI;
+      double const                                            viscosity = 2.5e-2;
+      double const                                            u_x_max   = 1.0;
+      for(unsigned int v = 0; v < dealii::VectorizedArray<Number>::size(); ++v)
+      {
+        dealii::Point<dim> p;
+        for(unsigned int d = 0; d < dim; ++d)
+        {
+          h_u[d][v] = 0.;
+          p[d]      = point[d][v];
+        }
+
+        if((std::abs(p[1] + 0.5) < 1e-12) and (p[0] < 0))
+          h_u[0][v] = u_x_max * 2.0 * pi * std::cos(2.0 * pi * p[1]) *
+                      std::exp(-4.0 * pi * pi * viscosity * t);
+        else if((std::abs(p[1] - 0.5) < 1e-12) and (p[0] > 0))
+          h_u[0][v] = -u_x_max * 2.0 * pi * std::cos(2.0 * pi * p[1]) *
+                      std::exp(-4.0 * pi * pi * viscosity * t);
+
+        if constexpr(dim > 1)
+        {
+          if((std::abs(p[0] + 0.5) < 1e-12) and (p[1] > 0))
+            h_u[1][v] = -u_x_max * 2.0 * pi * std::cos(2.0 * pi * p[0]) *
+                        std::exp(-4.0 * pi * pi * viscosity * t);
+          else if((std::abs(p[0] - 0.5) < 1e-12) and (p[1] < 0))
+            h_u[1][v] = u_x_max * 2.0 * pi * std::cos(2.0 * pi * p[0]) *
+                        std::exp(-4.0 * pi * pi * viscosity * t);
+        }
+      }
+      const auto h = viscosity * h_u - g_p;
+
+      value_p = 2.0 * (-1.0 * h * integrator_m.normal_vector(q) +
+                       viscosity * (integrator_u.get_gradient(q) * integrator_m.normal_vector(q)) *
+                         integrator_m.normal_vector(q));
+    }
+    value gradient_flux = kernel.calculate_gradient_flux(value_m, value_p);
+
+    value normal_gradient_m =
+      calculate_interior_normal_gradient<dim, Number, n_components, rank>(q,
+                                                                          integrator_m,
+                                                                          operator_type);
+    value normal_gradient_p =
+      calculate_exterior_normal_gradient<dim, Number, n_components, rank>(normal_gradient_m,
+                                                                          q,
+                                                                          integrator_m,
+                                                                          operator_type,
+                                                                          boundary_type,
+                                                                          boundary_id,
+                                                                          operator_data.bc,
+                                                                          this->time);
+
+    value value_flux =
+      kernel.calculate_value_flux(normal_gradient_m, normal_gradient_p, value_m, value_p);
+
+    integrator_m.submit_normal_derivative(gradient_flux, q);
+    integrator_m.submit_value(-value_flux, q);
+  }
+}
+
 template<int dim, typename Number, int n_components>
 void
 LaplaceOperator<dim, Number, n_components>::cell_loop_empty(
@@ -520,6 +614,82 @@ LaplaceOperator<dim, Number, n_components>::set_inhomogeneous_constrained_values
     }
   }
 }
+
+
+template<int dim, typename Number, int n_components>
+void
+LaplaceOperator<dim, Number, n_components>::rhs_add_full_traction(VectorType &       dst,
+                                                                  VectorType const & src) const
+{
+  if(this->is_dg)
+  {
+    // if(this->evaluate_face_integrals())
+    {
+      VectorType tmp;
+      tmp.reinit(dst, false);
+
+      this->matrix_free->loop(&This::cell_loop_empty,
+                              &This::face_loop_empty,
+                              &This::boundary_face_loop_inhom_operator_traction,
+                              this,
+                              tmp,
+                              src);
+
+      // multiply by -1.0 since the boundary face integrals have to be shifted to the right-hand
+      // side
+      dst.add(-1.0, tmp);
+    }
+    // else
+    // DEAL_II_NOT_IMPLEMENTED();
+  }
+  else
+  {
+    DEAL_II_NOT_IMPLEMENTED();
+  }
+}
+
+
+template<int dim, typename Number, int n_components>
+void
+LaplaceOperator<dim, Number, n_components>::boundary_face_loop_inhom_operator_traction(
+  dealii::MatrixFree<dim, Number> const & matrix_free,
+  VectorType &                            dst,
+  VectorType const &                      src,
+  Range const &                           range) const
+{
+  if(this->is_dg)
+  {
+    unsigned int const dof_index  = operator_data.dof_index;
+    unsigned int const quad_index = operator_data.quad_index;
+
+    IntegratorFace integrator_m = IntegratorFace(matrix_free, true, dof_index, quad_index);
+
+    dealii::FEFaceEvaluation<dim, -1, 0, dim, Number, dealii::VectorizedArray<Number>> integrator_u(
+      matrix_free, true, dof_index == 0 ? 1 : 0, quad_index);
+
+    for(unsigned int face = range.first; face < range.second; face++)
+    {
+      this->reinit_boundary_face(integrator_m, face);
+      integrator_u.reinit(face);
+      integrator_u.gather_evaluate(src, dealii::EvaluationFlags::gradients);
+      // note: no gathering/evaluation is necessary when calculating the
+      //       inhomogeneous part of boundary face integrals
+
+      do_boundary_integral_traction(integrator_m,
+                                    integrator_u,
+                                    OperatorType::inhomogeneous,
+                                    matrix_free.get_boundary_id(face));
+
+      integrator_m.integrate_scatter(this->integrator_flags.face_integrate, dst);
+    }
+  }
+  else // continuous FE discretization (e.g., apply Neumann BCs)
+  {
+    DEAL_II_ASSERT_UNREACHABLE();
+  }
+}
+
+
 
 template class LaplaceOperator<2, float, 1>;
 template class LaplaceOperator<2, double, 1>;

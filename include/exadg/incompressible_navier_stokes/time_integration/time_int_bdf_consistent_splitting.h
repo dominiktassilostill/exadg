@@ -171,6 +171,7 @@ private:
   // time integrator constants: extrapolation scheme
   ExtrapolationConstants extra_pressure_nbc;
   ExtrapolationConstants extra_pressure_rhs;
+  ExtrapolationConstants extra_traction;
 };
 
 } // namespace IncNS

@@ -183,6 +183,7 @@ Parameters::Parameters()
                                                                     order_time_integrator - 1),
     apply_leray_projection(true),
 
+    order_extrapolation_traction((order_time_integrator <= 2) ? order_time_integrator : 2),
     // PRESSURE-CORRECTION SCHEME
 
     // formulations
@@ -498,6 +499,9 @@ Parameters::check(dealii::ConditionalOStream const & pcout) const
 
     AssertThrow(order_extrapolation_pressure_rhs <= order_time_integrator,
                 dealii::ExcMessage("Invalid parameter order_extrapolation_pressure_rhs!"));
+
+    AssertThrow(order_extrapolation_traction <= order_time_integrator,
+                dealii::ExcMessage("Invalid parameter order_extrapolation_traction!"));
 
     AssertThrow(order_extrapolation_pressure_nbc <= order_time_integrator,
                 dealii::ExcMessage("Invalid parameter order_extrapolation_pressure_nbc!"));
@@ -1180,6 +1184,7 @@ Parameters::print_parameters_consistent_splitting(dealii::ConditionalOStream con
   pcout << "  Order of extrapolation ..." << std::endl;
   print_parameter(pcout, " ...convective terms in pressure rhs", order_extrapolation_pressure_rhs);
   print_parameter(pcout, " ... of viscous term in pressure NBC", order_extrapolation_pressure_nbc);
+  print_parameter(pcout, " ... of velocity in the traction boundary", order_extrapolation_traction);
 
 
   // projection method

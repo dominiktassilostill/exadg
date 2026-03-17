@@ -138,6 +138,11 @@ public:
   void
   do_rhs_ppe_laplace_add(VectorType & dst, double const & time) const;
 
+  void
+  do_rhs_ppe_laplace_add_full_traction(VectorType &       dst,
+                                       VectorType const & src,
+                                       double const &     time) const;
+
   /*
    * This function solves the pressure Poisson equation and returns the number of iterations.
    */

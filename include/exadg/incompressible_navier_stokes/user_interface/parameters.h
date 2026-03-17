@@ -621,6 +621,7 @@ public:
 
   // order of extrapolation of viscous term and convective term in the pressure righthandside
   unsigned int order_extrapolation_pressure_rhs;
+  unsigned int order_extrapolation_traction;
 
   // use of Leray projection
   bool apply_leray_projection;

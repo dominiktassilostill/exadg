@@ -335,11 +335,11 @@ private:
     // PROJECTION METHODS
 
     // pressure Poisson equation
-    this->param.solver_data_pressure_poisson         = SolverData(1000, 1.e-12, 1.e-6, LinearSolver::CG, 100);
+    this->param.solver_data_pressure_poisson         = SolverData(10000, 1.e-12, 1.e-6, LinearSolver::CG, 100);
     this->param.preconditioner_pressure_poisson      = PreconditionerPressurePoisson::Multigrid;
     this->param.multigrid_data_pressure_poisson.type = MultigridType::cphMG;
     this->param.multigrid_data_pressure_poisson.coarse_problem.solver =
-      MultigridCoarseGridSolver::Chebyshev;
+      MultigridCoarseGridSolver::AMG;
     this->param.multigrid_data_pressure_poisson.coarse_problem.preconditioner =
       MultigridCoarseGridPreconditioner::PointJacobi;
     this->param.multigrid_data_pressure_poisson.smoother_data.smoother =
@@ -348,7 +348,7 @@ private:
       PreconditionerSmoother::PointJacobi;
 
     // projection step
-    this->param.solver_data_projection    = SolverData(1000, 1.e-12, 1.e-6, LinearSolver::CG);
+    this->param.solver_data_projection    = SolverData(10000, 1.e-12, 1.e-6, LinearSolver::CG);
     this->param.preconditioner_projection = PreconditionerProjection::InverseMassMatrix;
     this->param.preconditioner_block_diagonal_projection =
       Elementwise::Preconditioner::InverseMassMatrix;
@@ -383,8 +383,17 @@ private:
 
     // CONSISTENT SPLITTING SCHEME
     this->param.order_extrapolation_pressure_rhs = 2;
-    this->param.apply_leray_projection           = true;
+    this->param.order_extrapolation_pressure_nbc = 2;
+    this->param.order_extrapolation_traction = 2;
 
+    this->param.apply_leray_projection = true;
+    
+    this->param.solver_data_momentum = SolverData(10000, 1.e-12, 1.e-6, LinearSolver::GMRES);
+    this->param.preconditioner_momentum = MomentumPreconditioner::InverseMassMatrix; //Multigrid
+    this->param.multigrid_data_momentum.type                   = MultigridType::phMG;
+    this->param.multigrid_operator_type_momentum =
+        MultigridOperatorType::ReactionConvectionDiffusion;
+    
     // PRESSURE-CORRECTION SCHEME
 
     // formulation
@@ -655,6 +664,9 @@ private:
 
     // calculation of velocity error
     pp_data.error_data_u.time_control_data.is_active        = true;
+    pp_data.error_data_u.compute_convergence_table          = true;
+    pp_data.error_data_u.write_errors_to_file               = true;
+    pp_data.error_data_u.directory                          = this->output_parameters.directory;
     pp_data.error_data_u.time_control_data.start_time       = start_time;
     pp_data.error_data_u.time_control_data.trigger_interval = (end_time - start_time);
     pp_data.error_data_u.analytical_solution.reset(
@@ -664,6 +676,9 @@ private:
 
     // ... pressure error
     pp_data.error_data_p.time_control_data.is_active        = true;
+    pp_data.error_data_p.compute_convergence_table          = true;
+    pp_data.error_data_p.write_errors_to_file               = true;
+    pp_data.error_data_p.directory                          = this->output_parameters.directory;
     pp_data.error_data_p.time_control_data.start_time       = start_time;
     pp_data.error_data_p.time_control_data.trigger_interval = (end_time - start_time);
     pp_data.error_data_p.analytical_solution.reset(

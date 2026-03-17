@@ -278,6 +278,10 @@ public:
   void
   rhs_add_dirichlet_bc_from_dof_vector(VectorType & dst, VectorType const & src) const;
 
+
+  void
+  rhs_add_full_traction(VectorType & dst, VectorType const & src) const;
+
 private:
   void
   reinit_face_derived(IntegratorFace &   integrator_m,
@@ -312,6 +316,14 @@ private:
                        dealii::types::boundary_id const & boundary_id) const final;
 
   void
+  do_boundary_integral_traction(
+    IntegratorFace & integrator_m,
+    dealii::FEFaceEvaluation<dim, -1, 0, dim, Number, dealii::VectorizedArray<Number>> &
+                                       integrator_u,
+    OperatorType const &               operator_type,
+    dealii::types::boundary_id const & boundary_id) const;
+
+  void
   cell_loop_empty(dealii::MatrixFree<dim, Number> const & matrix_free,
                   VectorType &                            dst,
                   VectorType const &                      src,
@@ -343,6 +355,12 @@ private:
   do_boundary_integral_continuous(IntegratorFace &                   integrator_m,
                                   OperatorType const &               operator_type,
                                   dealii::types::boundary_id const & boundary_id) const final;
+
+  void
+  boundary_face_loop_inhom_operator_traction(dealii::MatrixFree<dim, Number> const & matrix_free,
+                                             VectorType &                            dst,
+                                             VectorType const &                      src,
+                                             Range const &                           range) const;
 
   LaplaceOperatorData<rank, dim> operator_data;
 
