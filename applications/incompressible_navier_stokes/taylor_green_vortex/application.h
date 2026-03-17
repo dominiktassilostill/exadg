@@ -107,11 +107,13 @@ public:
                         n_subdivisions_1d_hypercube,
                         "Number of cells per direction on coarse grid.",
                         dealii::Patterns::Integer(1, 5));
+      prm.add_parameter("BDF", BDF, "Given BDF order.", dealii::Patterns::Integer(1, 5));
       prm.add_parameter("ExploitSymmetry",
                         exploit_symmetry,
                         "Exploit symmetry and reduce DoFs by a factor of 8?");
       prm.add_parameter("MovingMesh", ALE, "Moving mesh?");
       prm.add_parameter("Inviscid", inviscid, "Is this an inviscid simulation?");
+      prm.add_parameter("CFL", CFL, "CFL number");
       prm.add_parameter("ReynoldsNumber", Re, "Reynolds number (ignored if Inviscid = true)");
       prm.add_parameter("WriteRestart", write_restart, "Should restart files be written?");
       prm.add_parameter("ReadRestart", read_restart, "Is this a restarted simulation?");
@@ -141,12 +143,12 @@ private:
       this->param.equation_type = EquationType::NavierStokes;
     this->param.formulation_viscous_term    = FormulationViscousTerm::LaplaceFormulation;
     this->param.formulation_convective_term = FormulationConvectiveTerm::DivergenceFormulation;
-    if(ALE)
-      this->param.formulation_convective_term = FormulationConvectiveTerm::ConvectiveFormulation;
-    this->param.right_hand_side = false;
+    // if(ALE)
+    this->param.formulation_convective_term = FormulationConvectiveTerm::ConvectiveFormulation;
+    this->param.right_hand_side             = false;
 
     // ALE
-    this->param.ale_formulation                     = ALE;
+    this->param.ale_formulation                     = false; // ALE;
     this->param.mesh_movement_type                  = MeshMovementType::Function;
     this->param.neumann_with_variable_normal_vector = false;
 
@@ -157,16 +159,16 @@ private:
 
 
     // TEMPORAL DISCRETIZATION
-    this->param.solver_type                            = SolverType::Unsteady;
-    this->param.temporal_discretization                = TemporalDiscretization::BDFDualSplitting;
-    this->param.treatment_of_convective_term           = TreatmentOfConvectiveTerm::Explicit;
-    this->param.order_time_integrator                  = 2;
-    this->param.start_with_low_order                   = not read_restart;
-    this->param.adaptive_time_stepping                 = true;
-    this->param.calculation_of_time_step_size          = TimeStepCalculation::CFL;
+    this->param.solver_type                   = SolverType::Unsteady;
+    this->param.temporal_discretization       = TemporalDiscretization::BDFConsistentSplitting;
+    this->param.treatment_of_convective_term  = TreatmentOfConvectiveTerm::LinearlyImplicit;
+    this->param.order_time_integrator         = BDF;
+    this->param.start_with_low_order          = not read_restart;
+    this->param.adaptive_time_stepping        = true;
+    this->param.calculation_of_time_step_size = TimeStepCalculation::CFL;
     this->param.adaptive_time_stepping_limiting_factor = 3.0;
     this->param.max_velocity                           = max_velocity;
-    this->param.cfl                                    = 0.4;
+    this->param.cfl                                    = CFL;
     this->param.cfl_exponent_fe_degree_velocity        = 1.5;
     this->param.time_step_size                         = 1.0e-3;
 
@@ -235,12 +237,17 @@ private:
 
     // pressure Poisson equation
     this->param.solver_data_pressure_poisson =
-      SolverData(1000, ABS_TOL, REL_TOL, LinearSolver::CG, 100);
+      SolverData(10000, ABS_TOL, REL_TOL, LinearSolver::CG, 100);
     this->param.preconditioner_pressure_poisson      = PreconditionerPressurePoisson::Multigrid;
     this->param.multigrid_data_pressure_poisson.type = MultigridType::cphMG;
-
+    this->param.multigrid_data_pressure_poisson.coarse_problem.solver =
+      MultigridCoarseGridSolver::AMG;
+    this->param.multigrid_data_pressure_poisson.smoother_data.smoother =
+      MultigridSmoother::Chebyshev;
+    this->param.multigrid_data_pressure_poisson.smoother_data.preconditioner =
+      PreconditionerSmoother::PointJacobi;
     // projection step
-    this->param.solver_data_projection    = SolverData(1000, ABS_TOL, REL_TOL, LinearSolver::CG);
+    this->param.solver_data_projection    = SolverData(10000, ABS_TOL, REL_TOL, LinearSolver::CG);
     this->param.preconditioner_projection = PreconditionerProjection::InverseMassMatrix;
 
     // HIGH-ORDER DUAL SPLITTING SCHEME
@@ -254,6 +261,19 @@ private:
       this->param.solver_data_momentum    = SolverData(1000, ABS_TOL, REL_TOL, LinearSolver::CG);
       this->param.preconditioner_momentum = MomentumPreconditioner::InverseMassMatrix;
     }
+
+
+    // Consistent Splitting
+    this->param.order_extrapolation_pressure_nbc = BDF;
+    this->param.order_extrapolation_pressure_rhs = BDF;
+    this->param.apply_leray_projection           = true;
+
+    this->param.solver_data_momentum    = SolverData(10000, 1.e-12, 1.e-6, LinearSolver::GMRES);
+    this->param.preconditioner_momentum = MomentumPreconditioner::Multigrid; // InverseMassMatrix;
+    this->param.multigrid_data_momentum.type = MultigridType::phMG;
+    this->param.multigrid_operator_type_momentum =
+      MultigridOperatorType::ReactionConvectionDiffusion;
+
 
     // PRESSURE-CORRECTION SCHEME
 
@@ -271,7 +291,10 @@ private:
         this->param.solver_data_momentum =
           SolverData(1e4, ABS_TOL, REL_TOL, LinearSolver::GMRES, 100);
 
-      this->param.preconditioner_momentum        = MomentumPreconditioner::InverseMassMatrix;
+      this->param.preconditioner_momentum = MomentumPreconditioner::Multigrid; // InverseMassMatrix;
+      this->param.multigrid_data_momentum.type = MultigridType::phMG;
+      this->param.multigrid_operator_type_momentum =
+        MultigridOperatorType::ReactionConvectionDiffusion;
       this->param.update_preconditioner_momentum = false;
     }
 
@@ -447,8 +470,8 @@ private:
                        std::to_string(this->param.degree_u);
 
     // write output for visualization of results
-    pp_data.output_data.time_control_data.is_active        = this->output_parameters.write;
-    pp_data.output_data.time_control_data.start_time       = start_time;
+    pp_data.output_data.time_control_data.is_active  = false; // this->output_parameters.write;
+    pp_data.output_data.time_control_data.start_time = start_time;
     pp_data.output_data.time_control_data.trigger_interval = (end_time - start_time) / 20.0;
     pp_data.output_data.directory                 = this->output_parameters.directory + "vtu/";
     pp_data.output_data.filename                  = name;
@@ -507,7 +530,7 @@ private:
   MeshType mesh_type = MeshType::Cartesian;
 
   unsigned int n_subdivisions_1d_hypercube = 1;
-
+  unsigned int BDF                         = 2;
   // inviscid limit
   bool inviscid = false;
 
@@ -523,6 +546,9 @@ private:
   // restart
   bool write_restart = false;
   bool read_restart  = false;
+
+
+  double CFL = 0.4;
 
   double const V_0                 = 1.0;
   double const L                   = 1.0;
